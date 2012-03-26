@@ -17,22 +17,18 @@
 package jnats.client;
 
 import java.io.Closeable;
-import java.util.Iterator;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-// TODO Add support for getting messages in a blocking manner.
 public interface Subscription extends Closeable {
 
 	@Override
 	void close();
-	
+
 	String getSubject();
-	
+
 	HandlerRegistration addMessageHandler(MessageHandler messageHandler);
-	
-	Nats getNats();
 
 	int getReceivedMessages();
 	

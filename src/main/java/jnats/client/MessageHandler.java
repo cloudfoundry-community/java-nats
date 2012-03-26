@@ -21,6 +21,6 @@ package jnats.client;
  */
 public interface MessageHandler {
 	
-	void onMessage(Subscription subscription, String message, String replyTo);
+	void onMessage(Message message);
 	
 }

@@ -58,13 +58,9 @@ import java.util.regex.Pattern;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-// TODO Blocking mode for subscription
-// TODO Optional delay parameter for publish
-// TODO Add ping support that returns a future and the future completes when the pong arrives - useful for testing.
-// TODO Write a bunch of integration tests (automatic failover, publish, subscribe, subscribe max, publish future stuff when fail over happens, max reconnect attempts)
+// TODO Write a bunch of integration tests (subscribe max, publish future stuff when fail over happens, max reconnect attempts)
 // TODO Java Docs
 // TODO Write a markdown documentation page for Git Hub site
-// TODO Publish to GitHub
 // TODO Tweet about it!
 public class Nats implements Closeable {
 
@@ -81,9 +77,10 @@ public class Nats implements Closeable {
 	private final boolean createChannelFactory;
 	private volatile Channel channel;
 
-	private final Timer timer;
+	private final Timer timer = new Timer("nats");
 
 	// Configuration values
+	private final boolean automaticReconnect;
 	private final int maxReconnectAttempts;
 	private final long reconnectTimeWait;
 	private final boolean pedantic;
@@ -118,7 +115,7 @@ public class Nats implements Closeable {
 	/**
 	 * Holds the future objects associated with each #ping() request.
 	 * 
-	 * <p>The pongQueue may only be accessed from the Netty IO thread.
+	 * <p>Must hold monitor #pontQueue to access this queue;
 	 */
 	private final Queue<NatsFutureImpl> pongQueue = new LinkedList<NatsFutureImpl>();
 
@@ -298,11 +295,7 @@ public class Nats implements Closeable {
 		for (URI uri : builder.hosts) {
 			this.servers.add(new NatsServer(uri));
 		}
-		if (builder.automaticReconnect) {
-			timer = new Timer("nats");
-		} else {
-			timer = null;
-		}
+		automaticReconnect = builder.automaticReconnect;
 		maxReconnectAttempts = builder.maxReconnectAttempts;
 		reconnectTimeWait = builder.reconnectWaitTime;
 		pedantic = builder.pedantic;
@@ -319,6 +312,7 @@ public class Nats implements Closeable {
 		pipeline.addLast(PIPELINE_HANDLER, new SimpleChannelUpstreamHandler() {
 			private NatsSubscription currentSubscription;
 			private String replyTo;
+			private String subject;
 			@Override
 			public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 				final Object message = e.getMessage();
@@ -328,10 +322,11 @@ public class Nats implements Closeable {
 					final Matcher matcher = MSG_PATTERN.matcher(payload);
 					if (currentSubscription != null) {
 						try {
-							currentSubscription.onMessage(payload, replyTo);
+							currentSubscription.onMessage(subject, payload, replyTo);
 						} finally {
 							currentSubscription = null;
 							replyTo = null;
+							subject = null;
 							ctx.getPipeline().replace(PIPELINE_FIXED_DECODER, PIPELINE_FRAME_DECODER, delimiterBasedFrameDecoder);
 						}
 					} else if (matcher.matches()) {
@@ -340,6 +335,7 @@ public class Nats implements Closeable {
 						currentSubscription = subscriptions.get(id);
 						if (currentSubscription != null) {
 							this.replyTo = matcher.group(4);
+							this.subject = matcher.group(1);
 							ctx.getPipeline().replace(PIPELINE_FRAME_DECODER, PIPELINE_FIXED_DECODER, new FixedLengthFrameDecoder(length));
 						}
 					} else if (INFO_PATTERN.matcher(payload).matches()) {
@@ -351,11 +347,13 @@ public class Nats implements Closeable {
 					} else if (PING_PATTERN.matcher(payload).matches()) {
 						ctx.getChannel().write(CMD_PONG);
 					} else if (PONG_PATTERN.matcher(payload).matches()) {
-						final NatsFutureImpl pongFuture = pongQueue.poll();
-						if (pongFuture == null) {
-							throw new NatsException("Received unexpected PONG from server.");
-						} else {
-							pongFuture.setDone(null);
+						synchronized (pongQueue) {
+							final NatsFutureImpl pongFuture = pongQueue.poll();
+							if (pongFuture == null) {
+								throw new NatsException("Received unexpected PONG from server.");
+							} else {
+								pongFuture.setDone(null);
+							}
 						}
 					} else {
 						throw new NatsServerException("Don't know how to handle the following sent by the Nats server: " + payload);
@@ -367,7 +365,7 @@ public class Nats implements Closeable {
 
 			@Override
 			public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-				if (timer != null) {
+				if (automaticReconnect) {
 					timer.schedule(new TimerTask() {
 						@Override
 						public void run() {
@@ -376,8 +374,10 @@ public class Nats implements Closeable {
 					}, reconnectTimeWait);
 				}
 				final NatsClosedException closedException = new NatsClosedException();
-				for (NatsFutureImpl future : pongQueue) {
-					future.setDone(closedException);
+				synchronized (pongQueue)  {
+					for (NatsFutureImpl future : pongQueue) {
+						future.setDone(closedException);
+					}
 				}
 				callback.onClose();
 			}
@@ -462,9 +462,7 @@ public class Nats implements Closeable {
 		if (createChannelFactory) {
 			channelFactory.releaseExternalResources();
 		}
-		if (timer != null) {
-			timer.cancel();
-		}
+		timer.cancel();
 		NatsClosedException closedException = new NatsClosedException();
 		synchronized (publishQueue) {
 			for (Publish publish : publishQueue) {
@@ -480,8 +478,13 @@ public class Nats implements Closeable {
 	public NatsFuture publish(String subject, String message, String replyTo) {
 		assertNatsOpen();
 
-		String publishCommand = encodePublish(subject, replyTo, message);
 		NatsFutureImpl future = new NatsFutureImpl();
+		publish(subject, message, replyTo, future);
+		return future;
+	}
+
+	private void publish(String subject, String message, String replyTo, NatsFutureImpl future) {
+		String publishCommand = encodePublish(subject, replyTo, message);
 		synchronized (publishQueue) {
 			if (channel.isConnected()) {
 				writePublishCommand(publishCommand, future);
@@ -489,22 +492,23 @@ public class Nats implements Closeable {
 				publishQueue.add(new Publish(publishCommand, future));
 			}
 		}
-		return future;
 	}
 
-	public NatsFuture ping() {
+	NatsFuture ping() {
 		assertNatsOpen();
 		final NatsFutureImpl future = new NatsFutureImpl();
 		if (channel.isConnected()) {
-			pongQueue.add(future);
-			channelWrite(CMD_PING).addListener(new ChannelFutureListener() {
-				@Override
-				public void operationComplete(ChannelFuture channelFuture) throws Exception {
-					if (!channelFuture.isSuccess()) {
-						future.setDone(channelFuture.getCause());
+			synchronized (pongQueue) {
+				pongQueue.add(future);
+				channelWrite(CMD_PING).addListener(new ChannelFutureListener() {
+					@Override
+					public void operationComplete(ChannelFuture channelFuture) throws Exception {
+						if (!channelFuture.isSuccess()) {
+							future.setDone(channelFuture.getCause());
+						}
 					}
-				}
-			});
+				});
+			}
 		} else {
 			future.setDone(new NatsClosedException());
 		}
@@ -581,11 +585,6 @@ public class Nats implements Closeable {
 			}
 
 			@Override
-			public Nats getNats() {
-				return Nats.this;
-			}
-
-			@Override
 			public int getReceivedMessages() {
 				return subscription.getReceivedMessages();
 			}
@@ -617,7 +616,6 @@ public class Nats implements Closeable {
 	public Subscription subscribe(final String subject, final String queueGroup, final Integer maxMessages) {
 		assertNatsOpen();
 		// TODO Validate subject and queueGroup -- If they have white space it will break the protocol -- What is valid? -- Can't be empty.
-		// TODO What's the queueGroup even for?
 		final Integer id = subscriptionId.incrementAndGet();
 		NatsSubscription subscription = new NatsSubscription() {
 			final AtomicInteger receivedMessages = new AtomicInteger();
@@ -635,11 +633,6 @@ public class Nats implements Closeable {
 			@Override
 			public String getSubject() {
 				return subject;
-			}
-
-			@Override
-			public Nats getNats() {
-				return Nats.this;
 			}
 
 			@Override
@@ -672,14 +665,77 @@ public class Nats implements Closeable {
 				return queueGroup;
 			}
 			@Override
-			public void onMessage(String message, String replyTo) {
+			public void onMessage(final String subject, final String body, final String replyTo) {
 				final int messageCount = receivedMessages.incrementAndGet();
 				if (maxMessages != null && messageCount >= maxMessages) {
 					close();
 				}
+				final Subscription subscription = this;
+				final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
+				Message message = new Message() {
+					@Override
+					public Subscription getSubscription() {
+						return subscription;
+					}
+
+					@Override
+					public String getSubject() {
+						return subject;
+					}
+
+					@Override
+					public String getBody() {
+						return body;
+					}
+
+					@Override
+					public String getReplyTo() {
+						return replyTo;
+					}
+
+					@Override
+					public NatsFuture reply(String message) {
+						if (!hasReply) {
+							throw new NatsException("Message does not have a replyTo address to send the message to.");
+						}
+						return publish(replyTo, message);
+
+					}
+
+					@Override
+					public NatsFuture reply(final String message, long delay, TimeUnit unit) {
+						if (!hasReply) {
+							throw new NatsException("Message does not have a replyTo address to send the message to.");
+						}
+						final NatsFutureImpl future = new NatsFutureImpl();
+						// TODO If the timer gets cancelled the NatsFuture will never have #setDone invoked -- We need a better timer.
+						timer.schedule(new TimerTask() {
+							@Override
+							public void run() {
+								publish(replyTo, message, null, future);
+							}
+						}, unit.toMillis(delay));
+						return future;
+					}
+
+					@Override
+					public String toString() {
+						StringBuilder builder = new StringBuilder();
+						builder.append("[subject: '").append(subject).append("', body: '").append(body).append("'");
+						if (hasReply) {
+							builder.append(", replyTo: '").append(replyTo).append("'");
+						}
+						builder.append(']');
+						return builder.toString();
+					}
+				};
 				synchronized (handlers) {
 					for (MessageHandler handler : handlers) {
-						handler.onMessage(this, message, replyTo);
+						try {
+							handler.onMessage(message);
+						} catch (Throwable t) {
+							callback.onException(t);
+						}
 					}
 				}
 			}
@@ -825,7 +881,7 @@ public class Nats implements Closeable {
 	}
 	
 	private static interface NatsSubscription extends Subscription {
-		void onMessage(String message, String replyTo);
+		void onMessage(String subject, String message, String replyTo);
 		Integer getId();
 	}
 

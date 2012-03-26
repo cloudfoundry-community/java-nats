@@ -60,7 +60,7 @@ public class NatsTest {
 				final CountDownLatch latch = new CountDownLatch(1);
 				nats.subscribe(SUBJECT).addMessageHandler(new MessageHandler() {
 					@Override
-					public void onMessage(Subscription subscription, String message, String replyTo) {
+					public void onMessage(Message message) {
 						latch.countDown();
 					}
 				});
@@ -74,18 +74,18 @@ public class NatsTest {
 	public void simpleRequestReply() throws Exception {
 		new NatsTestCaseAwaitConnection() {
 			@Override
-			protected void connectedTest(final Nats nats) throws Exception {
+			protected void connectedTest(Nats nats) throws Exception {
 				final CountDownLatch latch = new CountDownLatch(1);
 				nats.subscribe(SUBJECT).addMessageHandler(new MessageHandler() {
 					@Override
-					public void onMessage(Subscription subscription, String message, String replyTo) {
+					public void onMessage(Message message) {
 						System.out.println("Received request, sending reply");
-						nats.publish(replyTo, "Reply");
+						message.reply("Reply");
 					}
 				});
 				nats.request(SUBJECT, "Request").addMessageHandler(new MessageHandler() {
 					@Override
-					public void onMessage(Subscription subscription, String message, String replyTo) {
+					public void onMessage(Message message) {
 						System.out.println("Received request response");
 						latch.countDown();
 					}
@@ -107,7 +107,7 @@ public class NatsTest {
 				Assert.assertTrue(openLatch.await(5, TimeUnit.SECONDS), "Didn't connect to server before timeout");
 				nats.subscribe(SUBJECT).addMessageHandler(new MessageHandler() {
 					@Override
-					public void onMessage(Subscription subscription, String message, String replyTo) {
+					public void onMessage(Message message) {
 						latch.countDown();
 					}
 				});
@@ -150,7 +150,7 @@ public class NatsTest {
 				final Subscription subscription = nats.subscribe(SUBJECT);
 				subscription.addMessageHandler(new MessageHandler() {
 					@Override
-					public void onMessage(Subscription subscription, String message, String replyTo) {
+					public void onMessage(Message message) {
 						messagesReceived.incrementAndGet();
 					}
 				});
