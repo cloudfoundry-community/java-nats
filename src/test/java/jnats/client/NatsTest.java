@@ -165,6 +165,21 @@ public class NatsTest {
 		};
 	}
 
+	@Test(dependsOnMethods = "simplePublishSubscribe")
+	public void blockingSubscription() throws Exception {
+		new NatsTestCase() {
+			@Override
+			protected void test(Nats nats) throws Exception {
+				final Subscription subscription = nats.subscribe(SUBJECT);
+				final SubscriptionIterator iterator = subscription.iterator();
+				Assert.assertNull(iterator.next(1, TimeUnit.SECONDS));
+				final String message = "Blocking test.";
+				nats.publish(SUBJECT, message);
+				Assert.assertEquals(iterator.next().getBody(), message);
+			}
+		};
+	}
+
 	protected void pingAndWait(Nats nats) throws InterruptedException {
 		final NatsFuture ping = nats.ping();
 		Assert.assertTrue(ping.await(5, TimeUnit.SECONDS), "Timed out waiting for PONG from server.");

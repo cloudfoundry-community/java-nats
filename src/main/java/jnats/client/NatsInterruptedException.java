@@ -16,26 +16,12 @@
  */
 package jnats.client;
 
-import java.io.Closeable;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface Subscription extends Closeable, Iterable<Message> {
+public class NatsInterruptedException extends RuntimeException {
 
-	@Override
-	void close();
-
-	String getSubject();
-
-	HandlerRegistration addMessageHandler(MessageHandler messageHandler);
-
-	int getReceivedMessages();
-
-	Integer getMaxMessages();
-
-	String getQueueGroup();
-
-	@Override
-	SubscriptionIterator iterator();
+	public NatsInterruptedException(InterruptedException e) {
+		super(e);
+	}
 }

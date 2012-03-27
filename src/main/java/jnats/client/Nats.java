@@ -585,6 +585,11 @@ public class Nats implements Closeable {
 			}
 
 			@Override
+			public SubscriptionIterator iterator() {
+				return subscription.iterator();
+			}
+
+			@Override
 			public int getReceivedMessages() {
 				return subscription.getReceivedMessages();
 			}
@@ -618,12 +623,18 @@ public class Nats implements Closeable {
 		// TODO Validate subject and queueGroup -- If they have white space it will break the protocol -- What is valid? -- Can't be empty.
 		final Integer id = subscriptionId.incrementAndGet();
 		NatsSubscription subscription = new NatsSubscription() {
-			final AtomicInteger receivedMessages = new AtomicInteger();
+			private final AtomicInteger receivedMessages = new AtomicInteger();
 			private final List<MessageHandler> handlers = new ArrayList<MessageHandler>();
+			private final List<BlockingQueueSubscriptionIterator> iterators = new ArrayList<BlockingQueueSubscriptionIterator>();
 			@Override
 			public void close() {
 				synchronized (subscriptions) {
 					subscriptions.remove(id);
+				}
+				synchronized (iterators) {
+					for (BlockingQueueSubscriptionIterator iterator : iterators) {
+						iterator.close();
+					}
 				}
 				if (maxMessages == null) {
 					channelWrite(encodeUnsubscribe(id, maxMessages));
@@ -648,6 +659,15 @@ public class Nats implements Closeable {
 						}
 					}
 				};
+			}
+
+			@Override
+			public SubscriptionIterator iterator() {
+				final BlockingQueueSubscriptionIterator iterator = new BlockingQueueSubscriptionIterator();
+				synchronized (iterators)  {
+					iterators.add(iterator);
+				}
+				return iterator;
 			}
 
 			@Override
@@ -733,6 +753,15 @@ public class Nats implements Closeable {
 					for (MessageHandler handler : handlers) {
 						try {
 							handler.onMessage(message);
+						} catch (Throwable t) {
+							callback.onException(t);
+						}
+					}
+				}
+				synchronized (iterators) {
+					for (BlockingQueueSubscriptionIterator iterator : iterators) {
+						try {
+							iterator.push(message);
 						} catch (Throwable t) {
 							callback.onException(t);
 						}
