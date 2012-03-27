@@ -56,9 +56,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Provides the interface for publishing messages and subscribing to Nats subjects. This class is responsible for
+ * maintaining a connection to the Nats Nats the server as well as automatic fail-over to a second server if the
+ * connection to one server fails.
+ * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-// TODO Write a bunch of integration tests (subscribe max, publish future stuff when fail over happens, max reconnect attempts)
 // TODO Java Docs
 // TODO Write a markdown documentation page for Git Hub site
 // TODO Tweet about it!
@@ -71,7 +74,10 @@ public class Nats implements Closeable {
 	public static final int DEFAULT_MAX_RECONNECT_ATTEMPTS = 10;
 	public static final long DEFAULT_RECONNECT_TIME_WAIT = TimeUnit.SECONDS.toMillis(2);
 
-	public static final int MAX_MESSAGE_SIZE = 1048576;
+	/**
+	 * The maximum message size this client will accept from a Nats server.
+	 */
+	public static final int DEFAULT_MAX_MESSAGE_SIZE = 1048576;
 
 	private final ChannelFactory channelFactory;
 	private final boolean createChannelFactory;
@@ -85,6 +91,7 @@ public class Nats implements Closeable {
 	private final long reconnectTimeWait;
 	private final boolean pedantic;
 	private final boolean verbose;
+	private final int maxMessageSize;
 
 	private final Callback callback;
 	private final NatsLogger logger;
@@ -153,6 +160,7 @@ public class Nats implements Closeable {
 		private ChannelFactory channelFactory;
 		private NatsLogger logger;
 		private Callback callback;
+		private int maxMessageSize = DEFAULT_MAX_MESSAGE_SIZE;
 
 		public Nats connect() {
 			if (hosts.size() == 0) {
@@ -160,7 +168,7 @@ public class Nats implements Closeable {
 			}
 			return new Nats(this);
 		}
-		
+
 		public Builder addHost(URI uri) {
 			if (!PROTOCOL.equalsIgnoreCase(uri.getScheme())) {
 				throw new IllegalArgumentException("Invalid protocol in URL: " + uri);
@@ -168,7 +176,7 @@ public class Nats implements Closeable {
 			hosts.add(uri);
 			return this;
 		}
-		
+
 		public Builder addHost(String host) {
 			return addHost(URI.create(host));
 		}
@@ -177,17 +185,17 @@ public class Nats implements Closeable {
 			this.automaticReconnect = automaticReconnect;
 			return this;
 		}
-		
+
 		public Builder channelFactory(ChannelFactory channelFactory) {
 			this.channelFactory = channelFactory;
 			return this;
 		}
-		
+
 		public Builder maxReconnectAttempts(int maxReconnectAttempts) {
 			this.maxReconnectAttempts = maxReconnectAttempts;
 			return this;
 		}
-		
+
 		public Builder reconnectWaitTime(long reconnectWaitTime) {
 			this.reconnectWaitTime = reconnectWaitTime;
 			return this;
@@ -202,7 +210,7 @@ public class Nats implements Closeable {
 			this.pedantic = pedantic;
 			return this;
 		}
-		
+
 		public Builder logger(NatsLogger logger) {
 			this.logger = logger;
 			return this;
@@ -213,6 +221,10 @@ public class Nats implements Closeable {
 			return this;
 		}
 
+		public Builder maxMessageSize(int maxMessageSize) {
+			this.maxMessageSize = maxMessageSize;
+			return this;
+		}
 	}
 
 	private static final StringDecoder decoder = new StringDecoder();
@@ -300,12 +312,13 @@ public class Nats implements Closeable {
 		reconnectTimeWait = builder.reconnectWaitTime;
 		pedantic = builder.pedantic;
 		verbose = builder.verbose;
+		maxMessageSize = builder.maxMessageSize;
 		connect();
 	}
 
 	private Channel createChannel(ChannelFactory channelFactory) {
 		final ChannelPipeline pipeline = Channels.pipeline();
-		final DelimiterBasedFrameDecoder delimiterBasedFrameDecoder = new DelimiterBasedFrameDecoder(MAX_MESSAGE_SIZE, ChannelBuffers.wrappedBuffer(new byte[]{'\r', '\n'}));
+		final DelimiterBasedFrameDecoder delimiterBasedFrameDecoder = new DelimiterBasedFrameDecoder(maxMessageSize, ChannelBuffers.wrappedBuffer(new byte[]{'\r', '\n'}));
 		pipeline.addFirst(PIPELINE_FRAME_DECODER, delimiterBasedFrameDecoder);
 		pipeline.addLast(PIPELINE_STRING_DECODER, decoder);
 		pipeline.addLast(PIPELINE_STRING_ENCODER, encoder);
