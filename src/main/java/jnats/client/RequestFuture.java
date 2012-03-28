@@ -17,6 +17,9 @@
 package jnats.client;
 
 /**
+ * Provides a combinations of a {@link NatsFuture} and {@link Subscription} used when invoking a
+ * {@link Nats#request(String, String, Integer)}.
+ * 
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface RequestFuture extends NatsFuture, Subscription {

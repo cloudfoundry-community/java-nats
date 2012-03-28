@@ -19,6 +19,8 @@ package jnats.client;
 import java.net.SocketAddress;
 
 /**
+ * This will be going away in the next release.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface Callback {

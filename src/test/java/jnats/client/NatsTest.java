@@ -125,7 +125,7 @@ public class NatsTest {
 			@Override
 			protected void modifyNatsConfig(Nats.Builder builder) {
 				builder
-					.reconnectWaitTime(1)
+					.reconnectWaitTime(1, TimeUnit.SECONDS)
 					.callback(new CallbackHandler() {
 						@Override
 						public void onClose() {

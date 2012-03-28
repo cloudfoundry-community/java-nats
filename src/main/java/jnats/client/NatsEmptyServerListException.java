@@ -17,6 +17,8 @@
 package jnats.client;
 
 /**
+ * Thrown when
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsEmptyServerListException extends NatsException {

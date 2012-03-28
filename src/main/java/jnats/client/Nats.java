@@ -59,7 +59,7 @@ import java.util.regex.Pattern;
  * Provides the interface for publishing messages and subscribing to Nats subjects. This class is responsible for
  * maintaining a connection to the Nats Nats the server as well as automatic fail-over to a second server if the
  * connection to one server fails.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 // TODO Java Docs
@@ -68,10 +68,25 @@ import java.util.regex.Pattern;
 public class Nats implements Closeable {
 
 	// Default configuration values.
+	/**
+	 * The default host to look for a Nats server, localhost, naturally.
+	 */
 	public static final String DEFAULT_HOST = "localhost";
+	/**
+	 * The default Nats port, 4222.
+	 */
 	public static final int DEFAULT_PORT = 4222;
+	/**
+	 * The name of the Nats protocol to use in URIs.
+	 */
 	public static final String PROTOCOL = "nats";
+	/**
+	 * The default number of connection attempt to make for a particular Nats server before giving up.
+	 */
 	public static final int DEFAULT_MAX_RECONNECT_ATTEMPTS = 10;
+	/**
+	 * The default amount of time to wait between Nats server connection attempts.
+	 */
 	public static final long DEFAULT_RECONNECT_TIME_WAIT = TimeUnit.SECONDS.toMillis(2);
 
 	/**
@@ -79,10 +94,24 @@ public class Nats implements Closeable {
 	 */
 	public static final int DEFAULT_MAX_MESSAGE_SIZE = 1048576;
 
+	/**
+	 * The Netty {@link ChannelFactory} used for creating {@link Channel} objects for connecting to and communicating
+	 * with Nats servers.
+	 */
 	private final ChannelFactory channelFactory;
+	/**
+	 * Indicates whether this class created the {@link ChannelFactory}. If this field is false, the
+	 * {@code ChannelFactory} was provided by the user of this class.
+	 */
 	private final boolean createChannelFactory;
+	/**
+	 * The Netty {@link Channel} used for communicating with the Nats server.
+	 */
 	private volatile Channel channel;
 
+	/**
+	 * The {@link Timer} used for scheduling server reconnects and scheduling delayed message publishing.
+	 */
 	private final Timer timer = new Timer("nats");
 
 	// Configuration values
@@ -96,7 +125,9 @@ public class Nats implements Closeable {
 	private final Callback callback;
 	private final NatsLogger logger;
 
-	// Indicates whether the Nats instance has been closed or not.
+	/**
+	 * Indicates whether this Nats instance has been closed or not.
+ 	 */
 	private volatile boolean closed = false;
 
 	/**
@@ -133,6 +164,11 @@ public class Nats implements Closeable {
 	 * <p>Must hold monitor #subscription to access.
 	 */
 	private final Map<Integer, NatsSubscription> subscriptions = new HashMap<Integer, NatsSubscription>();
+
+	/**
+	 * Counter used for obtaining subscription ids. Each subscription must have its own unique id that is sent to the
+	 * Nats server to uniquely identify the subscription..
+	 */
 	private final AtomicInteger subscriptionId = new AtomicInteger();
 
 	// Constants for over wire protocol
@@ -143,6 +179,7 @@ public class Nats implements Closeable {
 	private static final String CMD_SUBSCRIBE = "SUB";
 	private static final String CMD_UNSUBSCRIBE = "UNSUB";
 
+	// Regular expressions used for parsing server messages
 	private static final Pattern MSG_PATTERN = Pattern.compile("^MSG\\s+(\\S+)\\s+(\\S+)\\s+((\\S+)[^\\S\\r\\n]+)?(\\d+)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern OK_PATTERN = Pattern.compile("^\\+OK\\s*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern ERR_PATTERN = Pattern.compile("^-ERR\\s+('.+')?", Pattern.CASE_INSENSITIVE);
@@ -150,6 +187,9 @@ public class Nats implements Closeable {
 	private static final Pattern PONG_PATTERN = Pattern.compile("^PONG", Pattern.CASE_INSENSITIVE);
 	private static final Pattern INFO_PATTERN = Pattern.compile("^INFO\\s+([^\\r\\n]+)", Pattern.CASE_INSENSITIVE);
 
+	/**
+	 * Class used for configuring and creating {@link Nats} instances.
+	 */
 	public static class Builder {
 		private List<URI> hosts = new ArrayList<URI>();
 		private boolean automaticReconnect = true;
@@ -162,6 +202,12 @@ public class Nats implements Closeable {
 		private Callback callback;
 		private int maxMessageSize = DEFAULT_MAX_MESSAGE_SIZE;
 
+		/**
+		 * Creates the Nats instance and asynchronously connects to the first Nats server provided using the
+		 * {@code #addHost} methods. 
+		 * 
+		 * @return the {@code Nats} instance.
+		 */
 		public Nats connect() {
 			if (hosts.size() == 0) {
 				throw new IllegalStateException("No host specified to connect to.");
@@ -169,6 +215,12 @@ public class Nats implements Closeable {
 			return new Nats(this);
 		}
 
+		/**
+		 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
+		 * 
+		 * @param uri a Nats URI referencing a Nats server.
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder addHost(URI uri) {
 			if (!PROTOCOL.equalsIgnoreCase(uri.getScheme())) {
 				throw new IllegalArgumentException("Invalid protocol in URL: " + uri);
@@ -177,40 +229,92 @@ public class Nats implements Closeable {
 			return this;
 		}
 
-		public Builder addHost(String host) {
-			return addHost(URI.create(host));
+		/**
+		 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
+		 * 
+		 * @param uri a Nats URI referencing a Nats server.
+		 * @return this {@code Builder} instance.
+		 */
+		public Builder addHost(String uri) {
+			return addHost(URI.create(uri));
 		}
 
+		/**
+		 * Indicates whether a reconnect should be attempted automatically if the Nats server connection fails. Thsi
+		 * value is {@code true} by default.
+		 * 
+		 * @param automaticReconnect whether a reconnect should be attempted automatically if the Nats server
+		 *                           connection fails.
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder automaticReconnect(boolean automaticReconnect) {
 			this.automaticReconnect = automaticReconnect;
 			return this;
 		}
 
+		/**
+		 * Specifies the Netty {@link ChannelFactory} to use for connecting to the Nats server(s). (optional)
+		 * 
+		 * @param channelFactory the Netty {@code ChannelFactory} to use for connecting to the Nats server(s)
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder channelFactory(ChannelFactory channelFactory) {
 			this.channelFactory = channelFactory;
 			return this;
 		}
 
+		/**
+		 * Specifies the maximum number of subsequent connection attempts to make for a given server. (optional)
+		 * 
+		 * @param maxReconnectAttempts the maximum number of subsequent connection attempts to make for a given server
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder maxReconnectAttempts(int maxReconnectAttempts) {
 			this.maxReconnectAttempts = maxReconnectAttempts;
 			return this;
 		}
 
-		public Builder reconnectWaitTime(long reconnectWaitTime) {
-			this.reconnectWaitTime = reconnectWaitTime;
+		/**
+		 * Specifies the amount of time to wait between connection attempts. This is only used when automatic
+		 * reconnect is enabled.
+		 * 
+		 * @param time the amount of time to wait between connection attempts.
+		 * @param unit the time unit of the {@code time} argument
+		 * @return this {@code Builder} instance.
+		 */
+		public Builder reconnectWaitTime(long time, TimeUnit unit) {
+			this.reconnectWaitTime = unit.toMillis(time);
 			return this;
 		}
 
+		/**
+		 * I have no idea what this is used for but both the Ruby and Node clients have it.
+		 * 
+		 * @param verbose
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder verbose(boolean verbose) {
 			this.verbose = verbose;
 			return this;
 		}
 
+		/**
+		 * I have no idea what this is used for but both the Ruby and Node clients have it.
+		 * 
+		 * @param pedantic
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder pedantic(boolean pedantic) {
 			this.pedantic = pedantic;
 			return this;
 		}
 
+		/**
+		 * Specifies the {@link NatsLogger} to be used by the {@code Nats} instance.
+		 * 
+		 * @param logger the {@code NatsLogger} to be used by the {@code Nats} instance.
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder logger(NatsLogger logger) {
 			this.logger = logger;
 			return this;
@@ -221,6 +325,12 @@ public class Nats implements Closeable {
 			return this;
 		}
 
+		/**
+		 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1 megabyte.
+		 *
+		 * @param maxMessageSize the maximum message size that can be received by the {@code} Nats instance.
+		 * @return this {@code Builder} instance.
+		 */
 		public Builder maxMessageSize(int maxMessageSize) {
 			this.maxMessageSize = maxMessageSize;
 			return this;
@@ -238,6 +348,12 @@ public class Nats implements Closeable {
 
 	private static final Random random = new Random();
 
+	/**
+	 * Generates a random string used for creating a unique string. The {@code request} methods rely on this
+	 * functionality.
+	 *
+	 * @return a unique random string.
+	 */
 	public static String createInbox() {
 		byte[] bytes = new byte[16];
 		synchronized (random) {
@@ -457,7 +573,14 @@ public class Nats implements Closeable {
 
 	}
 
+	/**
+	 * Closes this Nats instance. Closes the connection to the Nats server, closes any subscriptions, cancels any
+	 * pending messages to be published.
+	 */
 	public void close() {
+		if (closed) {
+			return;
+		}
 		closed = true;
 		if (channel.isConnected()) {
 			channel.close().addListener(new ChannelFutureListener() {
@@ -477,6 +600,11 @@ public class Nats implements Closeable {
 		}
 		timer.cancel();
 		NatsClosedException closedException = new NatsClosedException();
+		synchronized (subscriptions) {
+			for (Subscription subscription : subscriptions.values()) {
+				subscription.close();
+			}
+		}
 		synchronized (publishQueue) {
 			for (Publish publish : publishQueue) {
 				publish.future.setDone(closedException);
@@ -484,10 +612,27 @@ public class Nats implements Closeable {
 		}
 	}
 
+	/**
+	 * Publishes a message to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
+	 * server, the message will be queued up to be published once a connection is established.
+	 *
+	 * @param subject the subject to publish to
+	 * @param message the message to publish
+	 * @return a {@code NatsFuture} object representing the pending publish.
+	 */
 	public NatsFuture publish(String subject, String message) {
 		return publish(subject, message, null);
 	}
 	
+	/**
+	 * Publishes a message to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
+	 * server, the message will be queued up to be published once a connection is established.
+	 *
+	 * @param subject the subject to publish to
+	 * @param message the message to publish
+	 * @param replyTo the subject replies to this message should be sent to.
+	 * @return a {@code NatsFuture} object representing the pending publish.
+	 */
 	public NatsFuture publish(String subject, String message, String replyTo) {
 		assertNatsOpen();
 
@@ -542,98 +687,71 @@ public class Nats implements Closeable {
 		});
 	}
 
-	public RequestFuture request(String subject, String message) {
-		return request(subject, message, null);
-	}
-
-	private RequestFuture request(String subject, String message, final Integer maxReplies) {
-		assertNatsOpen();
-		final String inbox = createInbox();
-		final Subscription subscription = subscribe(inbox, maxReplies);
-		final NatsFuture natsFuture = publish(subject, message, inbox);
-		return new RequestFuture() {
-			@Override
-			public HandlerRegistration addCompletionHandler(CompletionHandler listener) {
-				return natsFuture.addCompletionHandler(listener);
-			}
-
-			@Override
-			public boolean isDone() {
-				return natsFuture.isDone();
-			}
-
-			@Override
-			public boolean isSuccess() {
-				return natsFuture.isSuccess();
-			}
-
-			@Override
-			public Throwable getCause() {
-				return natsFuture.getCause();
-			}
-
-			@Override
-			public void await() throws InterruptedException {
-				natsFuture.await();
-			}
-
-			@Override
-			public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
-				return natsFuture.await(timeout, unit);
-			}
-
-			@Override
-			public void close() {
-				subscription.close();
-			}
-
-			@Override
-			public String getSubject() {
-				return inbox;
-			}
-
-			@Override
-			public HandlerRegistration addMessageHandler(MessageHandler messageHandler) {
-				return subscription.addMessageHandler(messageHandler);
-			}
-
-			@Override
-			public SubscriptionIterator iterator() {
-				return subscription.iterator();
-			}
-
-			@Override
-			public int getReceivedMessages() {
-				return subscription.getReceivedMessages();
-			}
-
-			@Override
-			public Integer getMaxMessages() {
-				return maxReplies;
-			}
-
-			@Override
-			public String getQueueGroup() {
-				return null;
-			}
-		};
-	}
-
+	/**
+	 * Subscribes to the specified subject.
+	 *
+	 * @see #subscribe(String, String, Integer)
+	 * @param subject the subject to subscribe to.
+	 * @return a {@code Subscription} object used for interacting with the subscription
+	 */
 	public Subscription subscribe(String subject) {
 		return subscribe(subject, null, null);
 	}
 	
+	/**
+	 * Subscribes to the specified subject within a specific queue group. The subject can be a specific subject or
+	 * include wild cards. A message to a particular subject will be delivered to only member of the same queue group.
+	 * 
+	 * @see #subscribe(String, String, Integer)
+	 * @param subject the subject to subscribe to
+	 * @param queueGroup the queue group the subscription participates in   
+	 * @return a {@code Subscription} object used for interacting with the subscription
+	 */
 	public Subscription subscribe(String subject, String queueGroup) {
 		return subscribe(subject, queueGroup, null);
 	}
-	
+
+	/**
+	 * Subscribes to the specified subject and will automatically unsubscribe after the specified number of messages
+	 * arrives.
+	 * 
+	 * @see #subscribe(String, String, Integer)
+	 * @param subject the subject to subscribe to
+	 * @param maxMessages the number of messages this subscription will receive before automatically closing the
+	 *                    subscription.
+	 * @return a {@code Subscription} object used for interacting with the subscription
+	 */
 	public Subscription subscribe(String subject, Integer maxMessages) {
 		return subscribe(subject, null, maxMessages);
 	}
-	
+
+	/**
+	 * Subscribes to the specified subject within a specific queue group and will automatically unsubscribe after the
+	 * specified number of messages arrives.
+	 * 
+	 * <p>The {@code subject} may contain wild cards. "*" matches any token, at any level of the subject. For example:
+	 * <pre>
+	 *     "foo.*.baz"  matches "foo.bar.baz, foo.a.baz, etc.
+	 *     "*.bar" matches "foo.bar", "baz.bar", etc.
+	 *     "*.bar.*" matches "foo.bar.baz", "foo.bar.foo", etc.
+	 * </pre>
+	 *
+	 * <p>">" matches any length of the tail of a subject and can only be the last token. For examples, 'foo.>' will
+	 * match 'foo.bar', 'foo.bar.baz', 'foo.foo.bar.bax.22'. A subject of simply ">" will match all messages.
+	 *
+	 * <p>All subscriptions with the same {@code queueGroup} will form a queue group. Each message will be delivered to
+	 * only one subscriber per queue group.
+	 *
+	 * @param subject the subject to subscribe to
+	 * @param queueGroup the queue group the subscription participates in   
+	 * @param maxMessages the number of messages this subscription will receive before automatically closing the
+	 *                    subscription.
+	 * @return a {@code Subscription} object used for interacting with the subscription
+	 */
+	// TODO Copy wild card docs from Nats docs to Java Docs here.
 	public Subscription subscribe(final String subject, final String queueGroup, final Integer maxMessages) {
 		assertNatsOpen();
-		// TODO Validate subject and queueGroup -- If they have white space it will break the protocol -- What is valid? -- Can't be empty.
+		// TODO Validate subject and queueGroup -- If they have white space it will break the protocol -- What is valid? -- Can't be empty. subject also has wild cards which must be valid.
 		final Integer id = subscriptionId.incrementAndGet();
 		NatsSubscription subscription = new NatsSubscription() {
 			private final AtomicInteger receivedMessages = new AtomicInteger();
@@ -802,6 +920,124 @@ public class Nats implements Closeable {
 				channelWrite(encodeUnsubscribe(subscription.getId(), subscription.getMaxMessages() - subscription.getReceivedMessages()));
 			}
 		}
+	}
+
+	/**
+	 * Sends a request on the given subject with an empty message. Request responses can be handled using the returned
+	 * {@link RequestFuture}.
+	 *
+	 * @see #request(String, String, Integer)
+	 * @param subject the subject to send the request on
+	 * @return
+	 */
+	public RequestFuture request(String subject) {
+		return request(subject, "", null);
+	}
+
+	/**
+	 * Sends a request message on the given subject. Request responses can be handled using the returned
+	 * {@link RequestFuture}.
+	 * 
+	 * @see #request(String, String, Integer)
+	 * @param subject the subject to send the request on
+	 * @param message the content of the request
+	 * @return
+	 */
+	public RequestFuture request(String subject, String message) {
+		return request(subject, message, null);
+	}
+
+	/**
+	 * Sends a request message on the given subject. Request responses can be handled using the returned
+	 * {@link RequestFuture}.
+	 *
+	 * Invoking this method is roughly equivalent to the following:
+	 *
+	 * <code>
+	 *     String replyTo = Nats.createInbox();
+	 *     Subscription subscription = nats.subscribe(replyTo, maxReplies);
+	 *     NatsFuture publishFuture = nats.publish(subject, message, replyTo);
+	 * </code>
+	 *
+	 * that returns a combination of {@code subscription} and {@code natsFuture} as a {@code RequestFuture} object.
+	 *
+	 * @param subject the subject to send the request on
+	 * @param message the content of the request
+	 * @param maxReplies the maximum number of replies that the request will accept before automatically closing,
+	 *                   {@code null} for unlimited replies
+	 * @return
+	 */
+	public RequestFuture request(String subject, String message, final Integer maxReplies) {
+		assertNatsOpen();
+		final String inbox = createInbox();
+		final Subscription subscription = subscribe(inbox, maxReplies);
+		final NatsFuture natsFuture = publish(subject, message, inbox);
+		return new RequestFuture() {
+			@Override
+			public HandlerRegistration addCompletionHandler(CompletionHandler listener) {
+				return natsFuture.addCompletionHandler(listener);
+			}
+
+			@Override
+			public boolean isDone() {
+				return natsFuture.isDone();
+			}
+
+			@Override
+			public boolean isSuccess() {
+				return natsFuture.isSuccess();
+			}
+
+			@Override
+			public Throwable getCause() {
+				return natsFuture.getCause();
+			}
+
+			@Override
+			public void await() throws InterruptedException {
+				natsFuture.await();
+			}
+
+			@Override
+			public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
+				return natsFuture.await(timeout, unit);
+			}
+
+			@Override
+			public void close() {
+				subscription.close();
+			}
+
+			@Override
+			public String getSubject() {
+				return inbox;
+			}
+
+			@Override
+			public HandlerRegistration addMessageHandler(MessageHandler messageHandler) {
+				return subscription.addMessageHandler(messageHandler);
+			}
+
+			@Override
+			public SubscriptionIterator iterator() {
+				return subscription.iterator();
+			}
+
+			@Override
+			public int getReceivedMessages() {
+				return subscription.getReceivedMessages();
+			}
+
+			@Override
+			public Integer getMaxMessages() {
+				return maxReplies;
+			}
+
+			@Override
+			public String getQueueGroup() {
+				return null;
+			}
+		};
 	}
 
 	private void assertNatsOpen() {

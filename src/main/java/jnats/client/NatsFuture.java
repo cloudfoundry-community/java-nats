@@ -19,21 +19,40 @@ package jnats.client;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Represents a pending Nats operation, typically a publish request. Most operations in Nats are asynchronous meaning
+ * that most method invocations will return immediately regardless of whether the operation has completed or not.
+ * Instances of this class can be used to track these pending operations and determine if they complete successfully or
+ * not.
+ * 
+ * <p>{@link #addCompletionHandler(CompletionHandler)}</p> can be used to get notified when the pending operation has
+ * completed. Alternatively, {@link #await()} or {@link #await(long, java.util.concurrent.TimeUnit)} can be used to
+ * block the current thread's execution until the future completes.
+ * 
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface NatsFuture {
 
-	HandlerRegistration addCompletionHandler(CompletionHandler listener);
+	/**
+	 * Adds the specified handler to this future.  The specified handler is invoked when this future has completed,
+	 * successful or not.  If this future is already completed, the specified listener is invoked immediately.
+	 *
+	 * @param handler the handler to invoke when this future object has completed
+	 * @return a handler registration
+	 */
+	HandlerRegistration addCompletionHandler(CompletionHandler handler);
 
 	/**
-	 * Returns {@code true} if and only if the message publishing or pinging is complete, regardless of whether
-	 * sending the message/ping was successful.
+	 * Returns {@code true} if and only if the pending operation is complete, regardless of whether the operation
+	 * completed successfully.
+	 *
+	 * @return true if the future has completed, false otherwise
 	 */
 	boolean isDone();
 
 	/**
-	 * Returns {@code true} if and only if the message was sent to the Nats server or in the case of a ping, returns
-	 * true if a pong message arrived..
+	 * Returns {@code true} if and only if the pending operation completed successfully.
+	 *
+	 * @return true of the future completed successfully, false otherwise.
 	 */
 	boolean isSuccess();
 
@@ -41,24 +60,25 @@ public interface NatsFuture {
 	 * Returns the cause of the failed operation assuming the operation has failed.
 	 *
 	 * @return the cause of the failure.
-	 *         {@code null} if succeeded or this future is not
-	 *         completed yet.
+	 *         {@code null} if succeeded or this future is not completed yet.
 	 */
 	Throwable getCause();
 
 	/**
-	 * Waits for published message to be sent.
+	 * Waits for the pending operation to complete.
 	 *
 	 * @throws InterruptedException if the current thread was interrupted
 	 */
 	void await() throws InterruptedException;
 
 	/**
-	 * Waits for the published message to be sent within the specified time limit.
+	 * Waits for the pending operation to complete within the specified time limit.
 	 *
 	 * @return {@code true} if and only if the future was completed within
 	 *         the specified time limit
 	 *
+	 * @param timeout the maximum amount of time to wait for the operation to complete
+	 * @param unit the unit of the {@code timeout} argument
 	 * @throws InterruptedException
 	 *         if the current thread was interrupted
 	 */

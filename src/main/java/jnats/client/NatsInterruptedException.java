@@ -17,9 +17,11 @@
 package jnats.client;
 
 /**
+ * Thrown when the current thread has been interrupted. This exception will always wrap an {@link InterruptedException}.
+ * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class NatsInterruptedException extends RuntimeException {
+public class NatsInterruptedException extends NatsException {
 
 	public NatsInterruptedException(InterruptedException e) {
 		super(e);
