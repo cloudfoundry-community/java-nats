@@ -62,9 +62,6 @@ import java.util.regex.Pattern;
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
-// TODO Java Docs
-// TODO Write a markdown documentation page for Git Hub site
-// TODO Tweet about it!
 public class Nats implements Closeable {
 
 	// Default configuration values.
