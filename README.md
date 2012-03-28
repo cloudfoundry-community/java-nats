@@ -1,6 +1,11 @@
 # JNats
 
-A Java client for the NATS lightweight publish-subscribe and distributed queueing messaging system.
+A Java client for the excellent NATS lightweight publish-subscribe and distributed queueing messaging system created
+by Derek Collision.
+
+More information about NATS can be found at the [NATS Git Hub project](https://github.com/derekcollison/nats).
+
+There is also a [NATS Client for Node.js] (https://github.com/derekcollison/node_nats).
 
 ## Basic Usage
 
