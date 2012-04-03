@@ -1,4 +1,4 @@
-# JNats
+# Java NATS
 
 A Java client for the excellent NATS lightweight publish-subscribe and distributed queueing messaging system created
 by Derek Collision.
@@ -119,10 +119,10 @@ nats.publish("foo", "message").addCompletionHandler(new CompletionHandler() {
     }
 });
 
-// Add multiple Nats server hosts for automatic fail-over
+// Add multiple NATS server hosts for automatic fail-over
 Nats nats = new Builder.Nats().addHost("nats://host1").addHost("nats://host2").connect();
 
-// Multiple connections are not really advanced in Jnats but here's how to do it.
+// Multiple connections are not really advanced in this NATS client but here's how to do it.
 Nats.Builder builder = new Builder.Nats().addHost("nats://host1");
 Nats nats 1 = builder.connect();
 Nats nats 2 = builder.connect();
