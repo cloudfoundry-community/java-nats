@@ -56,8 +56,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Provides the interface for publishing messages and subscribing to Nats subjects. This class is responsible for
- * maintaining a connection to the Nats Nats the server as well as automatic fail-over to a second server if the
+ * Provides the interface for publishing messages and subscribing to NATS subjects. This class is responsible for
+ * maintaining a connection to the NATS server as well as automatic fail-over to a second server if the
  * connection to one server fails.
  *
  * @author Mike Heath <elcapo@gmail.com>
@@ -123,7 +123,7 @@ public class Nats implements Closeable {
 	private final NatsLogger logger;
 
 	/**
-	 * Indicates whether this Nats instance has been closed or not.
+	 * Indicates whether this {@code Nats} instance has been closed or not.
  	 */
 	private volatile boolean closed = false;
 
@@ -156,7 +156,7 @@ public class Nats implements Closeable {
 
 	// Subscriptions
 	/**
-	 * Holds the list of subscriptions held by this Nats instance. 
+	 * Holds the list of subscriptions held by this {@code Nats} instance.
 	 *
 	 * <p>Must hold monitor #subscription to access.
 	 */
@@ -164,7 +164,7 @@ public class Nats implements Closeable {
 
 	/**
 	 * Counter used for obtaining subscription ids. Each subscription must have its own unique id that is sent to the
-	 * Nats server to uniquely identify the subscription..
+	 * NATS server to uniquely identify each subscription..
 	 */
 	private final AtomicInteger subscriptionId = new AtomicInteger();
 
@@ -200,7 +200,7 @@ public class Nats implements Closeable {
 		private int maxMessageSize = DEFAULT_MAX_MESSAGE_SIZE;
 
 		/**
-		 * Creates the Nats instance and asynchronously connects to the first Nats server provided using the
+		 * Creates the {@code Nats} instance and asynchronously connects to the first Nats server provided using the
 		 * {@code #addHost} methods. 
 		 * 
 		 * @return the {@code Nats} instance.

@@ -19,7 +19,7 @@ package jnats.client;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A Nats message.
+ * A NATS message.
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
@@ -33,9 +33,9 @@ public interface Message {
 	Subscription getSubscription();
 
 	/**
-	 * Returns the Nats subject the message was published on.
+	 * Returns the NATS subject the message was published on.
 	 *
-	 * @return the Nats subject the message was published on
+	 * @return the NATS subject the message was published on
 	 */
 	String getSubject();
 
