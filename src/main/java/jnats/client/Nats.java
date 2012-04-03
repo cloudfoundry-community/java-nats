@@ -60,6 +60,8 @@ import java.util.regex.Pattern;
  * maintaining a connection to the NATS server as well as automatic fail-over to a second server if the
  * connection to one server fails.
  *
+ * <p>This class is fully thread-safe.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class Nats implements Closeable {
