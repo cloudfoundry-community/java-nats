@@ -16,6 +16,8 @@
  */
 package jnats.client;
 
+import jnats.NatsException;
+
 /**
  * Thrown when
  *

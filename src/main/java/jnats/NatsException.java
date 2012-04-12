@@ -14,7 +14,7 @@
  *   limitations under the License.
  *
  */
-package jnats.client;
+package jnats;
 
 /**
  * The root exception for all Nats exceptions.

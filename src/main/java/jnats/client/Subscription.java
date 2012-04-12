@@ -16,6 +16,8 @@
  */
 package jnats.client;
 
+import jnats.HandlerRegistration;
+
 import java.io.Closeable;
 
 /**

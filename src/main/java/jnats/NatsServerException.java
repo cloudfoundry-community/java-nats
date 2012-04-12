@@ -14,20 +14,13 @@
  *   limitations under the License.
  *
  */
-package jnats.client;
+package jnats;
 
 /**
- * Provides a callback mechanism to be invoked when the operation represented by a {@link NatsFuture} completes.
- * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface CompletionHandler {
-
-	/**
-	 * This method gets invoked when the operation represented by a {@link NatsFuture} completes regardless of whether
-	 * the operation was successful or not.
-	 *
-	 * @param future the future object that completed
-	 */
-	void onComplete(NatsFuture future);
+public class NatsServerException extends NatsException {
+	public NatsServerException(String message) {
+		super(message);
+	}
 }

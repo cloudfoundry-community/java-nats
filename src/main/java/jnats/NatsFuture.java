@@ -14,7 +14,7 @@
  *   limitations under the License.
  *
  */
-package jnats.client;
+package jnats;
 
 import java.util.concurrent.TimeUnit;
 

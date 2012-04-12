@@ -1,5 +1,6 @@
 package jnats.client;
 
+import jnats.NatsLogger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -116,7 +117,6 @@ public class NatsTest {
 				System.out.println("Waiting for server to shutdown...");
 				natsServers[0].waitFor();
 				System.out.println("Server shutdown.");
-				nats.ping();
 				Assert.assertTrue(closeLatch.await(5, TimeUnit.SECONDS), "Connection should have closed.");
 				nats.publish(SUBJECT, "Test message");
 				Assert.assertTrue(latch.await(10, TimeUnit.SECONDS), "After the server reconnected, either it failed to resubscribe or it failed to publish the pending message.");
@@ -155,11 +155,9 @@ public class NatsTest {
 					}
 				});
 				nats.publish(SUBJECT, "First message");
-				pingAndWait(nats);
 				Assert.assertEquals(messagesReceived.get(), 1, "The first message didn't arrive.");
 				subscription.close();
 				nats.publish(SUBJECT, "Second message");
-				pingAndWait(nats);
 				Assert.assertEquals(messagesReceived.get(), 1, "The subscription didn't actually shut down, more than one message arrived.");
 			}
 		};
@@ -178,12 +176,6 @@ public class NatsTest {
 				Assert.assertEquals(iterator.next().getBody(), message);
 			}
 		};
-	}
-
-	protected void pingAndWait(Nats nats) throws InterruptedException {
-		final NatsFuture ping = nats.ping();
-		Assert.assertTrue(ping.await(5, TimeUnit.SECONDS), "Timed out waiting for PONG from server.");
-		Assert.assertTrue(ping.isSuccess());
 	}
 
 	static Process startsNatsServer(int port) throws IOException {

@@ -16,6 +16,8 @@
  */
 package jnats.client;
 
+import jnats.NatsFuture;
+
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -55,24 +57,24 @@ public interface Message {
 
 	/**
 	 * Sends a reply to this message. If the the message did not contain a {@code replyTo} field, a
-	 * {@link NatsException} will be thrown.
+	 * {@link jnats.NatsException} will be thrown.
 	 *
 	 * @param message the message with which to reply to the sender
 	 * @return a {@code NatFuture} instance representing the pending reply operation
-	 * @throws NatsException if the message did not contain a {@code replyTo} field
+	 * @throws jnats.NatsException if the message did not contain a {@code replyTo} field
 	 */
 	NatsFuture reply(String message);
 
 	/**
 	 * Sends a reply to this message after the specified delay has passed. This method returns immediate and sends the
 	 * delayed response asynchronously. If the the message did not contain a {@code replyTo} field, a
-	 * {@link NatsException} will be thrown.
+	 * {@link jnats.NatsException} will be thrown.
 	 *
 	 * @param message the message with which to reply to the sender
 	 * @param delay the amount of time to wait before sending the reply
 	 * @param unit the time unit of the {@code delay} argument
 	 * @return a {@code NatFuture} instance representing the pending reply operation
-	 * @throws NatsException if the message did not contain a {@code replyTo} field
+	 * @throws jnats.NatsException if the message did not contain a {@code replyTo} field
 	 */
 	NatsFuture reply(String message, long delay, TimeUnit unit);
 

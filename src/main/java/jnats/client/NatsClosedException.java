@@ -16,6 +16,8 @@
  */
 package jnats.client;
 
+import jnats.NatsException;
+
 /**
  * Thrown when trying to use a {@link Nats} instance that has been closed.
  * 

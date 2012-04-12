@@ -14,16 +14,22 @@
  *   limitations under the License.
  *
  */
-package jnats.client;
+package jnats;
+
+import jnats.NatsFuture;
 
 /**
- * Thrown when the current thread has been interrupted. This exception will always wrap an {@link InterruptedException}.
+ * Provides a callback mechanism to be invoked when the operation represented by a {@link jnats.NatsFuture} completes.
  * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class NatsInterruptedException extends NatsException {
+public interface CompletionHandler {
 
-	public NatsInterruptedException(InterruptedException e) {
-		super(e);
-	}
+	/**
+	 * This method gets invoked when the operation represented by a {@link jnats.NatsFuture} completes regardless of whether
+	 * the operation was successful or not.
+	 *
+	 * @param future the future object that completed
+	 */
+	void onComplete(NatsFuture future);
 }

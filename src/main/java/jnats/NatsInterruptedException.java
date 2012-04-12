@@ -14,13 +14,18 @@
  *   limitations under the License.
  *
  */
-package jnats.client;
+package jnats;
+
+import jnats.NatsException;
 
 /**
+ * Thrown when the current thread has been interrupted. This exception will always wrap an {@link InterruptedException}.
+ * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class NatsServerException extends NatsException {
-	public NatsServerException(String message) {
-		super(message);
+public class NatsInterruptedException extends NatsException {
+
+	public NatsInterruptedException(InterruptedException e) {
+		super(e);
 	}
 }
