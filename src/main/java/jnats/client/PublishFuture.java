@@ -19,10 +19,14 @@ package jnats.client;
 import jnats.NatsFuture;
 
 /**
- * Provides a combinations of a {@link jnats.client.PublishFuture} and {@link Subscription} used when invoking a
- * {@link Nats#request(String, String, Integer)}.
- * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface RequestFuture extends PublishFuture, Subscription {
+public interface PublishFuture extends NatsFuture {
+
+	String getSubject();
+
+	String getMessage();
+
+	String getReplyTo();
+
 }

@@ -573,7 +573,7 @@ public class Nats implements Closeable {
 	 * @return a {@code NatsFuture} object representing the pending publish.
 	 */
 	// TODO Make PublishFuture that extends NatsFuture
-	public NatsFuture publish(String subject, String message) {
+	public PublishFuture publish(String subject, String message) {
 		return publish(subject, message, null);
 	}
 	
@@ -586,15 +586,15 @@ public class Nats implements Closeable {
 	 * @param replyTo the subject replies to this message should be sent to.
 	 * @return a {@code NatsFuture} object representing the pending publish.
 	 */
-	public NatsFuture publish(String subject, String message, String replyTo) {
+	public PublishFuture publish(String subject, String message, String replyTo) {
 		assertNatsOpen();
 
-		NatsFutureImpl future = new NatsFutureImpl();
+		DefaultPublishFuture future = new DefaultPublishFuture(subject, message, replyTo, callback);
 		publish(subject, message, replyTo, future);
 		return future;
 	}
 
-	private void publish(String subject, String message, String replyTo, NatsFutureImpl future) {
+	private void publish(String subject, String message, String replyTo, DefaultPublishFuture future) {
 		Publish publishMessage = new Publish(subject, message, replyTo, future);
 		synchronized (publishQueue) {
 			if (isConnectionReady()) {
@@ -775,11 +775,11 @@ public class Nats implements Closeable {
 					}
 
 					@Override
-					public NatsFuture reply(final String message, long delay, TimeUnit unit) {
+					public PublishFuture reply(final String message, long delay, TimeUnit unit) {
 						if (!hasReply) {
 							throw new NatsException("Message does not have a replyTo address to send the message to.");
 						}
-						final NatsFutureImpl future = new NatsFutureImpl();
+						final DefaultPublishFuture future = new DefaultPublishFuture(replyTo, message, null, callback);
 						// TODO If the timer gets cancelled the NatsFuture will never have #setDone invoked -- We need a better timer.
 						timer.schedule(new TimerTask() {
 							@Override
@@ -885,77 +885,12 @@ public class Nats implements Closeable {
 	 *                   {@code null} for unlimited replies
 	 * @return
 	 */
-	public RequestFuture request(String subject, String message, final Integer maxReplies) {
+	public RequestFuture request(String subject, final String message, final Integer maxReplies) {
 		assertNatsOpen();
 		final String inbox = createInbox();
 		final Subscription subscription = subscribe(inbox, maxReplies);
-		final NatsFuture natsFuture = publish(subject, message, inbox);
-		return new RequestFuture() {
-			@Override
-			public HandlerRegistration addCompletionHandler(CompletionHandler listener) {
-				return natsFuture.addCompletionHandler(listener);
-			}
-
-			@Override
-			public boolean isDone() {
-				return natsFuture.isDone();
-			}
-
-			@Override
-			public boolean isSuccess() {
-				return natsFuture.isSuccess();
-			}
-
-			@Override
-			public Throwable getCause() {
-				return natsFuture.getCause();
-			}
-
-			@Override
-			public void await() throws InterruptedException {
-				natsFuture.await();
-			}
-
-			@Override
-			public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
-				return natsFuture.await(timeout, unit);
-			}
-
-			@Override
-			public void close() {
-				subscription.close();
-			}
-
-			@Override
-			public String getSubject() {
-				return inbox;
-			}
-
-			@Override
-			public HandlerRegistration addMessageHandler(MessageHandler messageHandler) {
-				return subscription.addMessageHandler(messageHandler);
-			}
-
-			@Override
-			public SubscriptionIterator iterator() {
-				return subscription.iterator();
-			}
-
-			@Override
-			public int getReceivedMessages() {
-				return subscription.getReceivedMessages();
-			}
-
-			@Override
-			public Integer getMaxMessages() {
-				return maxReplies;
-			}
-
-			@Override
-			public String getQueueGroup() {
-				return null;
-			}
-		};
+		final PublishFuture publishFuture = publish(subject, message, inbox);
+		return new DefaultRequestFuture(subscription, publishFuture);
 	}
 
 	private void assertNatsOpen() {
@@ -1029,130 +964,20 @@ public class Nats implements Closeable {
 		Integer getId();
 	}
 
-	private static final HandlerRegistration EMPTY_HANDLER_REGISTRATION = new HandlerRegistration() {
-		@Override
-		public void remove() {
-			// DO nothing.
-		}
-	};
-
-	// TODO Move this outside of Nats class
-	private class NatsFutureImpl implements NatsFuture {
-		private boolean done;
-		private Throwable cause;
-		private List<PublishHandlerRegistration> listeners;
-		private final Object lock = new Object();
-		@Override
-		public HandlerRegistration addCompletionHandler(final CompletionHandler listener) {
-			synchronized (lock) {
-				if (done) {
-					invokeListener(listener);
-					return EMPTY_HANDLER_REGISTRATION;
-				} else {
-					PublishHandlerRegistration registration = new PublishHandlerRegistration(listener) {
-						@Override
-						public void remove() {
-							synchronized (lock) {
-								listeners.remove(this);
-							}
-						}
-					};
-					if (listeners == null) {
-						listeners = new LinkedList<PublishHandlerRegistration>();
-					}
-					listeners.add(registration);
-					return registration;
-				}
-			}
-		}
-
-		@Override
-		public boolean isDone() {
-			synchronized (lock) {
-				return done;
-			}
-		}
-
-		@Override
-		public boolean isSuccess() {
-			synchronized (lock) {
-				return cause == null;
-			}
-		}
-
-		@Override
-		public Throwable getCause() {
-			synchronized (lock) {
-				return cause;
-			}
-		}
-
-		@Override
-		public void await() throws InterruptedException {
-			synchronized (lock) {
-				lock.wait();
-			}
-		}
-
-		@Override
-		public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
-			synchronized (lock) {
-				lock.wait(unit.toMillis(timeout));
-				return isDone();
-			}
-		}
-
-		void setDone(Throwable cause) {
-			synchronized (lock) {
-				if (done) {
-					return;
-				}
-				done = true;
-				this.cause = cause;
-				if (listeners != null) {
-					for (PublishHandlerRegistration handler : listeners) {
-						invokeListener(handler.getCompletionHandler());
-					}
-				}
-				lock.notifyAll();
-			}
-		}
-
-		private void invokeListener(CompletionHandler listener) {
-			try {
-				listener.onComplete(this);
-			} catch (Throwable t) {
-				callback.onException(t);
-			}
-		}
-	}
-
-	private static abstract class PublishHandlerRegistration implements HandlerRegistration {
-
-		private final CompletionHandler completionHandler;
-
-		private PublishHandlerRegistration(CompletionHandler completionHandler) {
-			this.completionHandler = completionHandler;
-		}
-
-		public CompletionHandler getCompletionHandler() {
-			return completionHandler;
-		}
-	}
-
 	private static interface HasFuture {
-		NatsFutureImpl getFuture();
+		DefaultPublishFuture getFuture();
 	}
 
 	private static class Publish extends ClientPublishMessage implements HasFuture {
-		private final NatsFutureImpl future;
+		private final DefaultPublishFuture future;
 
-		public Publish(String subject, String message, String replyTo, NatsFutureImpl future) {
+		public Publish(String subject, String message, String replyTo, DefaultPublishFuture future) {
 			super(subject, message, replyTo);
 			this.future = future;
 		}
 
-		public NatsFutureImpl getFuture() {
+		@Override
+		public DefaultPublishFuture getFuture() {
 			return future;
 		}
 	}
