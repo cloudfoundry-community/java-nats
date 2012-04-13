@@ -5,7 +5,7 @@ import jnats.client.Nats;
 import jnats.NatsFuture;
 
 /**
- * @author Mike Heath <heathma@ldschurch.org>
+ * @author Mike Heath <elcapo@gmail.com>
  */
 public class Test {
 	public static void main(String[] args) throws Exception {
