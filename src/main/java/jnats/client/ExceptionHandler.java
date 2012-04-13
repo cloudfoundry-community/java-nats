@@ -23,15 +23,8 @@ import java.net.SocketAddress;
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface Callback {
-
-	void onConnect();
-
-	void onClose();
+public interface ExceptionHandler {
 
 	void onException(Throwable t);
 
-	void onServerReconnectFailed(SocketAddress address);
-
-	void onServerConnectFailed();
 }

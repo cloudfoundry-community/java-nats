@@ -37,14 +37,14 @@ class DefaultPublishFuture implements PublishFuture {
 	private List<PublishHandlerRegistration> listeners;
 	private final Object lock = new Object();
 
-	private final Callback callback;
+	private final ExceptionHandler exceptionHandler;
 
-	public DefaultPublishFuture(String subject, String message, String replyTo, Callback callback) {
+	public DefaultPublishFuture(String subject, String message, String replyTo, ExceptionHandler exceptionHandler) {
 		this.subject = subject;
 		this.message = message;
 		this.replyTo = replyTo;
 
-		this.callback = callback;
+		this.exceptionHandler = exceptionHandler;
 	}
 
 	@Override
@@ -142,7 +142,7 @@ class DefaultPublishFuture implements PublishFuture {
 		try {
 			listener.onComplete(this);
 		} catch (Throwable t) {
-			callback.onException(t);
+			exceptionHandler.onException(t);
 		}
 	}
 

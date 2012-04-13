@@ -16,7 +16,6 @@
  */
 package jnats.client;
 
-import jnats.CompletionHandler;
 import jnats.Constants;
 import jnats.HandlerRegistration;
 import jnats.NatsException;
@@ -110,10 +109,8 @@ public class Nats implements Closeable {
 	private final long reconnectTimeWait;
 	private final boolean pedantic;
 	private final boolean verbose;
-	private final int maxMessageSize;
 
-	// TODO Replace the callback with some type of connection monitor
-	private final Callback callback;
+	private final ExceptionHandler exceptionHandler;
 	private final NatsLogger logger;
 
 	/**
@@ -155,7 +152,7 @@ public class Nats implements Closeable {
 	 */
 	private final AtomicInteger subscriptionId = new AtomicInteger();
 
-	// Constants for over wire protocol
+	private final NatsConnectionStatus connectionStatus = new NatsConnectionStatus();
 
 	/**
 	 * Class used for configuring and creating {@link Nats} instances.
@@ -169,7 +166,7 @@ public class Nats implements Closeable {
 		private boolean verbose = false;
 		private ChannelFactory channelFactory;
 		private NatsLogger logger;
-		private Callback callback;
+		private ExceptionHandler exceptionHandler;
 		private int maxMessageSize = Constants.DEFAULT_MAX_MESSAGE_SIZE;
 
 		/**
@@ -290,8 +287,8 @@ public class Nats implements Closeable {
 			return this;
 		}
 
-		public Builder callback(Callback callback) {
-			this.callback = callback;
+		public Builder callback(ExceptionHandler exceptionHandler) {
+			this.exceptionHandler = exceptionHandler;
 			return this;
 		}
 
@@ -330,36 +327,18 @@ public class Nats implements Closeable {
 		} else {
 			this.logger = builder.logger;
 		}
-		if (builder.callback == null) {
-			this.callback = new Callback() {
-				@Override
-				public void onConnect() {
-					logger.log(NatsLogger.Level.DEBUG, "Connect to server");
-				}
-
-				@Override
-				public void onClose() {
-					logger.log(NatsLogger.Level.WARNING, "Connection closed");
-				}
-
+		// Create a default exception handler if one is not provided
+		if (builder.exceptionHandler == null) {
+			this.exceptionHandler = new ExceptionHandler() {
 				@Override
 				public void onException(Throwable t) {
 					logger.log(NatsLogger.Level.ERROR, t);
 				}
-
-				@Override
-				public void onServerReconnectFailed(SocketAddress address) {
-					logger.log(NatsLogger.Level.ERROR, "Unable to connect to server " + address);
-				}
-
-				@Override
-				public void onServerConnectFailed() {
-					logger.log(NatsLogger.Level.ERROR, "Unable to connect to any of the provided Nats servers.");
-				}
 			};
 		} else {
-			this.callback = builder.callback;
+			this.exceptionHandler = builder.exceptionHandler;
 		}
+		// Set up channel factory
 		createdChannelFactory = builder.channelFactory == null;
 		if (createdChannelFactory) {
 			this.channelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
@@ -367,16 +346,21 @@ public class Nats implements Closeable {
 			this.channelFactory = builder.channelFactory;
 		}
 		clientChannelPipelineFactory = new ClientChannelPipelineFactory(builder.maxMessageSize);
+
+		// Setup server list
 		this.servers = new ArrayList<NatsServer>();
 		for (URI uri : builder.hosts) {
 			this.servers.add(new NatsServer(uri));
 		}
+
+		// Set parameters
 		automaticReconnect = builder.automaticReconnect;
 		maxReconnectAttempts = builder.maxReconnectAttempts;
 		reconnectTimeWait = builder.reconnectWaitTime;
 		pedantic = builder.pedantic;
 		verbose = builder.verbose;
-		maxMessageSize = builder.maxMessageSize;
+
+		// Start connection to server
 		connect();
 	}
 
@@ -410,7 +394,7 @@ public class Nats implements Closeable {
 				setRequestFutureDone(request, null);
 				// Indicates we've successfully connected to a Nats server
 				if (request instanceof ClientConnectMessage) {
-					// TODO Update flag indicating we're successfully talking to server and to stop queueing things.
+					connectionStatus.setServerReady(true);
 					// Resubscribe when the channel opens.
 					synchronized (subscriptions) {
 						for (NatsSubscription subscription : subscriptions.values()) {
@@ -454,7 +438,7 @@ public class Nats implements Closeable {
 			@Override
 			public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
 				super.channelClosed(ctx, e);
-				// TODO Update flag indicating the channel has closed and we need to queue pending requests.
+				connectionStatus.setServerReady(false);
 				if (automaticReconnect) {
 					timer.schedule(new TimerTask() {
 						@Override
@@ -464,23 +448,16 @@ public class Nats implements Closeable {
 					}, reconnectTimeWait);
 				}
 				final NatsClosedException closedException = new NatsClosedException();
-				callback.onClose();
-			}
-
-			@Override
-			public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-				callback.onConnect();
 			}
 
 			@Override
 			public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-				callback.onException(e.getCause());
+				exceptionHandler.onException(e.getCause());
 			}
 
 			@Override
 			public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
 				super.writeRequested(ctx, e);
-				// TODO Log debug message of everything being written
 			}
 		});
 		return channelFactory.newChannel(pipeline);
@@ -498,7 +475,7 @@ public class Nats implements Closeable {
 			while (server == null) {
 				if (serverIterator == null || !serverIterator.hasNext()) {
 					if (servers.size() == 0) {
-						callback.onServerConnectFailed();
+						exceptionHandler.onException(new ServerConnectionFailedException("Unable to connect a NATS server."));
 						close();
 						throw new NatsEmptyServerListException();
 					}
@@ -507,7 +484,7 @@ public class Nats implements Closeable {
 				server = serverIterator.next();
 				if (maxReconnectAttempts > 0 && server.getConnectionAttempts() > maxReconnectAttempts) {
 					logger.log(NatsLogger.Level.WARNING, "Exceeded max connection attempts connecting to Nats server " + server.address);
-					callback.onServerReconnectFailed(server.address);
+					exceptionHandler.onException(new ServerReconnectFailed(server.address));
 					serverIterator.remove();
 				}
 			}
@@ -526,7 +503,10 @@ public class Nats implements Closeable {
 				}
 			}
 		});
+	}
 
+	public ConnectionStatus getConnectionStatus() {
+		return connectionStatus;
 	}
 
 	/**
@@ -553,7 +533,9 @@ public class Nats implements Closeable {
 		timer.cancel();
 		NatsClosedException closedException = new NatsClosedException();
 		synchronized (subscriptions) {
-			for (Subscription subscription : subscriptions.values()) {
+			// We have to make a copy of the subscriptions because calling subscription.close() modifies the subscriptions map.
+			Collection<Subscription> subscriptionsCopy = new ArrayList<Subscription>(subscriptions.values());
+			for (Subscription subscription : subscriptionsCopy) {
 				subscription.close();
 			}
 		}
@@ -572,7 +554,6 @@ public class Nats implements Closeable {
 	 * @param message the message to publish
 	 * @return a {@code NatsFuture} object representing the pending publish.
 	 */
-	// TODO Make PublishFuture that extends NatsFuture
 	public PublishFuture publish(String subject, String message) {
 		return publish(subject, message, null);
 	}
@@ -589,7 +570,7 @@ public class Nats implements Closeable {
 	public PublishFuture publish(String subject, String message, String replyTo) {
 		assertNatsOpen();
 
-		DefaultPublishFuture future = new DefaultPublishFuture(subject, message, replyTo, callback);
+		DefaultPublishFuture future = new DefaultPublishFuture(subject, message, replyTo, exceptionHandler);
 		publish(subject, message, replyTo, future);
 		return future;
 	}
@@ -597,17 +578,12 @@ public class Nats implements Closeable {
 	private void publish(String subject, String message, String replyTo, DefaultPublishFuture future) {
 		Publish publishMessage = new Publish(subject, message, replyTo, future);
 		synchronized (publishQueue) {
-			if (isConnectionReady()) {
+			if (connectionStatus.isServerReady()) {
 				channel.write(publishMessage);
 			} else {
 				publishQueue.add(publishMessage);
 			}
 		}
-	}
-
-	private boolean isConnectionReady() {
-		// TODO Add check for flag that says we're connected to server and good to go.
-		return channel.isConnected();
 	}
 
 	/**
@@ -689,7 +665,9 @@ public class Nats implements Closeable {
 					}
 				}
 				if (maxMessages == null) {
-					channel.write(new ClientUnsubscribeMessage(id, maxMessages));
+					if (!closed) {
+						channel.write(new ClientUnsubscribeMessage(id, maxMessages));
+					}
 				}
 			}
 
@@ -779,7 +757,7 @@ public class Nats implements Closeable {
 						if (!hasReply) {
 							throw new NatsException("Message does not have a replyTo address to send the message to.");
 						}
-						final DefaultPublishFuture future = new DefaultPublishFuture(replyTo, message, null, callback);
+						final DefaultPublishFuture future = new DefaultPublishFuture(replyTo, message, null, exceptionHandler);
 						// TODO If the timer gets cancelled the NatsFuture will never have #setDone invoked -- We need a better timer.
 						timer.schedule(new TimerTask() {
 							@Override
@@ -806,7 +784,7 @@ public class Nats implements Closeable {
 						try {
 							handler.onMessage(message);
 						} catch (Throwable t) {
-							callback.onException(t);
+							exceptionHandler.onException(t);
 						}
 					}
 				}
@@ -815,7 +793,7 @@ public class Nats implements Closeable {
 						try {
 							iterator.push(message);
 						} catch (Throwable t) {
-							callback.onException(t);
+							exceptionHandler.onException(t);
 						}
 					}
 				}
@@ -835,7 +813,7 @@ public class Nats implements Closeable {
 	}
 
 	private void writeSubscription(NatsSubscription subscription) {
-		if (isConnectionReady()) {
+		if (connectionStatus.isServerReady()) {
 			channel.write(new ClientSubscribeMessage(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
 		}
 	}
@@ -981,5 +959,35 @@ public class Nats implements Closeable {
 			return future;
 		}
 	}
-	
+
+	private class NatsConnectionStatus implements ConnectionStatus {
+
+		private volatile boolean serverReady = false;
+		private final Object lock = new Object();
+
+		@Override
+		public boolean isConnected() {
+			return channel.isConnected();
+		}
+
+		@Override
+		public boolean isServerReady() {
+			return serverReady;
+		}
+
+		@Override
+		public boolean awaitServerReady(long time, TimeUnit unit) throws InterruptedException {
+			synchronized (lock) {
+				lock.wait(unit.toMillis(time));
+			}
+			return serverReady;
+		}
+
+		public void setServerReady(boolean ready) {
+			this.serverReady = ready;
+			synchronized (lock) {
+				lock.notifyAll();
+			}
+		}
+	}
 }

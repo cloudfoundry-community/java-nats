@@ -16,30 +16,23 @@
  */
 package jnats.client;
 
+import jnats.NatsException;
+
 import java.net.SocketAddress;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class CallbackHandler implements Callback {
-	@Override
-	public void onConnect() {
+public class ServerReconnectFailed extends NatsException {
+
+	private final SocketAddress address;
+
+	public ServerReconnectFailed(SocketAddress address) {
+		super("Reconnect fail to server: " + address);
+		this.address = address;
 	}
 
-	@Override
-	public void onClose() {
-	}
-
-	@Override
-	public void onException(Throwable t) {
-		t.printStackTrace();
-	}
-
-	@Override
-	public void onServerReconnectFailed(SocketAddress address) {
-	}
-
-	@Override
-	public void onServerConnectFailed() {
+	public SocketAddress getAddress() {
+		return address;
 	}
 }
