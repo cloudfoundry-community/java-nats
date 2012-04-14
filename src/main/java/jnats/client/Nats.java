@@ -45,6 +45,10 @@ import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.util.HashedWheelTimer;
+import org.jboss.netty.util.Timeout;
+import org.jboss.netty.util.Timer;
+import org.jboss.netty.util.TimerTask;
 
 import java.io.Closeable;
 import java.math.BigInteger;
@@ -60,8 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -98,10 +101,8 @@ public class Nats implements Closeable {
 
 	/**
 	 * The {@link Timer} used for scheduling server reconnects and scheduling delayed message publishing.
-	 *
-	 * TODO We need a more robust timer for dealing with cancellations.
 	 */
-	private final Timer timer = new Timer("nats");
+	private final Timer timer = new HashedWheelTimer();
 
 	// Configuration values
 	private final boolean automaticReconnect;
@@ -440,12 +441,12 @@ public class Nats implements Closeable {
 				super.channelClosed(ctx, e);
 				connectionStatus.setServerReady(false);
 				if (automaticReconnect) {
-					timer.schedule(new TimerTask() {
+					timer.newTimeout(new TimerTask() {
 						@Override
-						public void run() {
+						public void run(Timeout timeout) {
 							connect();
 						}
-					}, reconnectTimeWait);
+					}, reconnectTimeWait, TimeUnit.MILLISECONDS);
 				}
 				final NatsClosedException closedException = new NatsClosedException();
 			}
@@ -530,8 +531,14 @@ public class Nats implements Closeable {
 		if (createdChannelFactory) {
 			channelFactory.releaseExternalResources();
 		}
-		timer.cancel();
 		NatsClosedException closedException = new NatsClosedException();
+		final Set<Timeout> timeouts = timer.stop();
+		for (Timeout timeout : timeouts) {
+			final TimerTask task = timeout.getTask();
+			if (task instanceof HasFuture) {
+				((HasFuture)task).getFuture().setDone(closedException);
+			}
+		}
 		synchronized (subscriptions) {
 			// We have to make a copy of the subscriptions because calling subscription.close() modifies the subscriptions map.
 			Collection<Subscription> subscriptionsCopy = new ArrayList<Subscription>(subscriptions.values());
@@ -758,13 +765,17 @@ public class Nats implements Closeable {
 							throw new NatsException("Message does not have a replyTo address to send the message to.");
 						}
 						final DefaultPublishFuture future = new DefaultPublishFuture(replyTo, message, null, exceptionHandler);
-						// TODO If the timer gets cancelled the NatsFuture will never have #setDone invoked -- We need a better timer.
-						timer.schedule(new TimerTask() {
+						timer.newTimeout(new TimerTaskFuture() {
 							@Override
-							public void run() {
+							public void run(Timeout timeout) {
 								publish(replyTo, message, null, future);
 							}
-						}, unit.toMillis(delay));
+
+							@Override
+							public DefaultPublishFuture getFuture() {
+								return future;
+							}
+						}, delay, unit);
 						return future;
 					}
 
@@ -945,6 +956,8 @@ public class Nats implements Closeable {
 	private static interface HasFuture {
 		DefaultPublishFuture getFuture();
 	}
+
+	private static interface TimerTaskFuture extends TimerTask, HasFuture {}
 
 	private static class Publish extends ClientPublishMessage implements HasFuture {
 		private final DefaultPublishFuture future;
