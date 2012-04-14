@@ -1,8 +1,8 @@
-import jnats.CompletionHandler;
-import jnats.client.Message;
-import jnats.client.MessageHandler;
-import jnats.client.Nats;
-import jnats.NatsFuture;
+import nats.CompletionHandler;
+import nats.client.Message;
+import nats.client.MessageHandler;
+import nats.client.Nats;
+import nats.NatsFuture;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>

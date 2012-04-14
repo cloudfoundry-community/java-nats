@@ -12,7 +12,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.github.jnats</groupId>
-	<artifactId>java-nats</artifactId>
+	<artifactId>nats-client</artifactId>
 	<version>0.1</version>
 
 	<name>Java NATS</name>
