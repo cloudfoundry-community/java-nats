@@ -19,6 +19,7 @@ package nats.client;
 import nats.HandlerRegistration;
 
 import java.io.Closeable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Represents a Nats subscription.
@@ -91,4 +92,14 @@ public interface Subscription extends Closeable, Iterable<Message> {
 	 */
 	@Override
 	SubscriptionIterator iterator();
+
+	/**
+	 * Automatically closes the subscription after the specified amount of time.
+	 *
+	 * @param time the time to wait until closing the subscription
+	 * @param unit the unit for {@code time}
+	 * @return a handle to the timeout.
+	 */
+	SubscriptionTimeout timeout(long time, TimeUnit unit);
+
 }

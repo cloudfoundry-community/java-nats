@@ -1,4 +1,4 @@
-# Java NATS
+# Java NATS Client
 
 A Java client for the excellent NATS lightweight publish-subscribe and distributed queueing messaging system created
 by Derek Collision.
@@ -6,6 +6,8 @@ by Derek Collision.
 More information about NATS can be found at the [NATS Git Hub project](https://github.com/derekcollison/nats).
 
 There is also a [NATS Client for Node.js] (https://github.com/derekcollison/node_nats).
+
+This NATS client is fully thread-safe.
 
 ## Basic Usage
 

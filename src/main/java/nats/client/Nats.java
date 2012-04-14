@@ -448,7 +448,6 @@ public class Nats implements Closeable {
 						}
 					}, reconnectTimeWait, TimeUnit.MILLISECONDS);
 				}
-				final NatsClosedException closedException = new NatsClosedException();
 			}
 
 			@Override
@@ -808,6 +807,11 @@ public class Nats implements Closeable {
 						}
 					}
 				}
+			}
+
+			@Override
+			public SubscriptionTimeout timeout(long time, TimeUnit unit) {
+				return new DefaultSubscriptionTimeout(timer, this, exceptionHandler, time, unit);
 			}
 
 			@Override

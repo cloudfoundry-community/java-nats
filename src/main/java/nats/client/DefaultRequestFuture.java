@@ -108,4 +108,9 @@ class DefaultRequestFuture implements RequestFuture {
 	public SubscriptionIterator iterator() {
 		return subscription.iterator();
 	}
+
+	@Override
+	public SubscriptionTimeout timeout(long time, TimeUnit unit) {
+		return subscription.timeout(time, unit);
+	}
 }

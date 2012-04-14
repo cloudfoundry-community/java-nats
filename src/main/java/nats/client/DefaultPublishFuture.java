@@ -19,8 +19,6 @@ package nats.client;
 import nats.CompletionHandler;
 import nats.HandlerRegistration;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,8 +32,9 @@ class DefaultPublishFuture implements PublishFuture {
 
 	private boolean done;
 	private Throwable cause;
-	private List<PublishHandlerRegistration> listeners;
 	private final Object lock = new Object();
+
+	private final HandlerRegistrar<CompletionHandler> registrar = new HandlerRegistrar<CompletionHandler>();
 
 	private final ExceptionHandler exceptionHandler;
 
@@ -67,21 +66,9 @@ class DefaultPublishFuture implements PublishFuture {
 		synchronized (lock) {
 			if (done) {
 				invokeListener(listener);
-				return EMPTY_HANDLER_REGISTRATION;
+				return HandlerRegistrar.EMPTY_HANDLER_REGISTRATION;
 			} else {
-				PublishHandlerRegistration registration = new PublishHandlerRegistration(listener) {
-					@Override
-					public void remove() {
-						synchronized (lock) {
-							listeners.remove(this);
-						}
-					}
-				};
-				if (listeners == null) {
-					listeners = new LinkedList<PublishHandlerRegistration>();
-				}
-				listeners.add(registration);
-				return registration;
+				return registrar.addHandler(listener);
 			}
 		}
 	}
@@ -129,10 +116,8 @@ class DefaultPublishFuture implements PublishFuture {
 			}
 			done = true;
 			this.cause = cause;
-			if (listeners != null) {
-				for (PublishHandlerRegistration handler : listeners) {
-					invokeListener(handler.getCompletionHandler());
-				}
+			for (CompletionHandler handler : registrar) {
+				invokeListener(handler);
 			}
 			lock.notifyAll();
 		}
@@ -145,25 +130,5 @@ class DefaultPublishFuture implements PublishFuture {
 			exceptionHandler.onException(t);
 		}
 	}
-
-	private static abstract class PublishHandlerRegistration implements HandlerRegistration {
-
-		private final CompletionHandler completionHandler;
-
-		private PublishHandlerRegistration(CompletionHandler completionHandler) {
-			this.completionHandler = completionHandler;
-		}
-
-		public CompletionHandler getCompletionHandler() {
-			return completionHandler;
-		}
-	}
-
-	private static final HandlerRegistration EMPTY_HANDLER_REGISTRATION = new HandlerRegistration() {
-		@Override
-		public void remove() {
-			// DO nothing.
-		}
-	};
 
 }
