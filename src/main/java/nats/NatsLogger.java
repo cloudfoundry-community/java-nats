@@ -42,6 +42,18 @@ public interface NatsLogger {
 		}
 	};
 
+	public static final NatsLogger DEBUG_LOGGER = new NatsLogger() {
+		@Override
+		public void log(Level level, String message) {
+			System.out.println(level.toString() + ": " + message);
+		}
+
+		@Override
+		public void log(Level level, Throwable t) {
+			t.printStackTrace();
+		}
+	};
+
 	void log(Level level, String message);
 	
 	void log(Level level, Throwable t);

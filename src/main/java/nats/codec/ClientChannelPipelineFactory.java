@@ -65,19 +65,6 @@ public class ClientChannelPipelineFactory implements ChannelPipelineFactory {
 		pipeline.addFirst(PIPELINE_FRAME_DECODER, delimiterBasedFrameDecoder);
 		pipeline.addLast(PIPELINE_STRING_DECODER, decoder);
 		pipeline.addLast(PIPELINE_STRING_ENCODER, encoder);
-		pipeline.addLast("debug", new SimpleChannelHandler() {
-			@Override
-			public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-				super.writeRequested(ctx, e);
-				System.out.println("Sent: " + e.getMessage());
-			}
-
-			@Override
-			public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-				System.out.println("Received: " + e.getMessage());
-				super.messageReceived(ctx, e);
-			}
-		});
 		pipeline.addLast(PIPELINE_CODEC, new ClientCodec());
 		return pipeline;
 	}

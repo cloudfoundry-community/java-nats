@@ -108,47 +108,33 @@ public class NatsTest {
 	
 	@Test(dependsOnMethods = "simplePublishSubscribe")
 	public void resubscribeAfterServerKill() throws Exception {
-//		final CountDownLatch closeLatch = new CountDownLatch(1);
-//		final CountDownLatch openLatch = new CountDownLatch(1);
-//		new NatsTestCase(DEFAULT_START_PORT, DEFAULT_START_PORT + 1) {
-//
-//			@Override
-//			protected void test(Nats nats) throws Exception {
-//				final CountDownLatch latch = new CountDownLatch(1);
-//				Assert.assertTrue(openLatch.await(5, TimeUnit.SECONDS), "Didn't connect to server before timeout");
-//				nats.subscribe(SUBJECT).addMessageHandler(new MessageHandler() {
-//					@Override
-//					public void onMessage(Message message) {
-//						latch.countDown();
-//					}
-//				});
-//				// Kill server we're connected to
-//				natsServers[0].destroy();
-//				System.out.println("Waiting for server to shutdown...");
-//				natsServers[0].waitFor();
-//				System.out.println("Server shutdown.");
-//				Assert.assertTrue(closeLatch.await(5, TimeUnit.SECONDS), "Connection should have closed.");
-//				nats.publish(SUBJECT, "Test message");
-//				Assert.assertTrue(latch.await(10, TimeUnit.SECONDS), "After the server reconnected, either it failed to resubscribe or it failed to publish the pending message.");
-//			}
-//
-//			@Override
-//			protected void modifyNatsConfig(Nats.Builder builder) {
-//				builder
-//					.reconnectWaitTime(1, TimeUnit.SECONDS)
-//					.callback(new ExceptionHandler() {
-//						@Override
-//						public void onClose() {
-//							closeLatch.countDown();
-//						}
-//
-//						@Override
-//						public void onConnect() {
-//							openLatch.countDown();
-//						}
-//					});
-//			}
-//		};
+		new NatsTestCase(DEFAULT_START_PORT, DEFAULT_START_PORT + 1) {
+
+			@Override
+			protected void test(Nats nats) throws Exception {
+				final CountDownLatch latch = new CountDownLatch(1);
+				Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(5, TimeUnit.SECONDS), "Didn't connect to server before timeout");
+				nats.subscribe(SUBJECT).addMessageHandler(new MessageHandler() {
+					@Override
+					public void onMessage(Message message) {
+						latch.countDown();
+					}
+				});
+				// Kill server we're connected to
+				natsServers[0].destroy();
+				System.out.println("Waiting for server to shutdown...");
+				natsServers[0].waitFor();
+				System.out.println("Server shutdown.");
+				Assert.assertTrue(nats.getConnectionStatus().awaitConnectionClose(5, TimeUnit.SECONDS), "Connection should have closed.");
+				nats.publish(SUBJECT, "Test message");
+				Assert.assertTrue(latch.await(10, TimeUnit.SECONDS), "After the server reconnected, either it failed to resubscribe or it failed to publish the pending message.");
+			}
+
+			@Override
+			protected void modifyNatsConfig(Nats.Builder builder) {
+				builder.reconnectWaitTime(5, TimeUnit.SECONDS);
+			}
+		};
 	}
 
 	@Test(dependsOnMethods = "simplePublishSubscribe", timeOut = 10000)
@@ -242,7 +228,9 @@ public class NatsTest {
 			
 		}
 		
-		protected void modifyNatsConfig(Nats.Builder builder) {}
+		protected void modifyNatsConfig(Nats.Builder builder) {
+			// Do nothing.
+		}
 		
 		protected abstract void test(Nats nats) throws Exception;
 	}

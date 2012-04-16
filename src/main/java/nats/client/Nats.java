@@ -20,6 +20,7 @@ import nats.Constants;
 import nats.HandlerRegistration;
 import nats.NatsException;
 import nats.NatsFuture;
+import nats.NatsInterruptedException;
 import nats.NatsLogger;
 import nats.NatsServerException;
 import nats.codec.AbstractClientChannelHandler;
@@ -44,6 +45,7 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.Timeout;
@@ -367,6 +369,19 @@ public class Nats implements Closeable {
 
 	private Channel createChannel(ChannelFactory channelFactory) {
 		final ChannelPipeline pipeline = clientChannelPipelineFactory.getPipeline();
+		pipeline.addBefore(ClientChannelPipelineFactory.PIPELINE_CODEC, "debug", new SimpleChannelHandler() {
+			@Override
+			public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+				super.writeRequested(ctx, e);
+				logger.log(NatsLogger.Level.DEBUG, "Sent: " + e.getMessage());
+			}
+
+			@Override
+			public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
+				logger.log(NatsLogger.Level.DEBUG, "Received: " + e.getMessage());
+				super.messageReceived(ctx, e);
+			}
+		});
 		pipeline.addLast("handler", new AbstractClientChannelHandler() {
 			@Override
 			public void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message) {
@@ -438,8 +453,9 @@ public class Nats implements Closeable {
 
 			@Override
 			public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+				logger.log(NatsLogger.Level.DEBUG, "Connection closed");
 				super.channelClosed(ctx, e);
-				connectionStatus.setServerReady(false);
+				connectionStatus.channelClosed();
 				if (automaticReconnect) {
 					timer.newTimeout(new TimerTask() {
 						@Override
@@ -550,6 +566,17 @@ public class Nats implements Closeable {
 				publish.future.setDone(closedException);
 			}
 		}
+	}
+
+	/**
+	 * Publishes an empty message to the specified subject. If this {@code Nats} instance is not currently connected to
+	 * a Nats server, the message will be queued up to be published once a connection is established.
+	 *
+	 * @param subject the subject to publish to
+	 * @return a {@code NatsFuture} object representing the pending publish.
+	 */
+	public PublishFuture publish(String subject) {
+		return publish(subject, "", null);
 	}
 
 	/**
@@ -980,7 +1007,8 @@ public class Nats implements Closeable {
 	private class NatsConnectionStatus implements ConnectionStatus {
 
 		private volatile boolean serverReady = false;
-		private final Object lock = new Object();
+		private final Object serverReadyMonitor = new Object();
+		private final Object connectionClosedMonitor = new Object();
 
 		@Override
 		public boolean isConnected() {
@@ -993,17 +1021,36 @@ public class Nats implements Closeable {
 		}
 
 		@Override
+		public boolean awaitConnectionClose(long time, TimeUnit unit) throws InterruptedException {
+			if (channel.isConnected()) {
+				synchronized (connectionClosedMonitor) {
+					connectionClosedMonitor.wait(unit.toMillis(time));
+				}
+			}
+			return !channel.isConnected();
+		}
+
+		@Override
 		public boolean awaitServerReady(long time, TimeUnit unit) throws InterruptedException {
-			synchronized (lock) {
-				lock.wait(unit.toMillis(time));
+			synchronized (serverReadyMonitor) {
+				serverReadyMonitor.wait(unit.toMillis(time));
 			}
 			return serverReady;
 		}
 
 		public void setServerReady(boolean ready) {
 			this.serverReady = ready;
-			synchronized (lock) {
-				lock.notifyAll();
+			if (serverReady) {
+				synchronized (serverReadyMonitor) {
+					serverReadyMonitor.notifyAll();
+				}
+			}
+		}
+
+		public void channelClosed() {
+			setServerReady(false);
+			synchronized (connectionClosedMonitor) {
+				connectionClosedMonitor.notifyAll();
 			}
 		}
 	}
