@@ -20,7 +20,6 @@ import nats.Constants;
 import nats.HandlerRegistration;
 import nats.NatsException;
 import nats.NatsFuture;
-import nats.NatsInterruptedException;
 import nats.NatsLogger;
 import nats.NatsServerException;
 import nats.codec.AbstractClientChannelHandler;
@@ -45,8 +44,8 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
+import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 import org.jboss.netty.util.HashedWheelTimer;
 import org.jboss.netty.util.Timeout;
 import org.jboss.netty.util.Timer;
@@ -455,6 +454,10 @@ public class Nats implements Closeable {
 
 			@Override
 			public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
+				Throwable t = e.getCause();
+				if (t instanceof TooLongFrameException) {
+					close();
+				}
 				exceptionHandler.onException(e.getCause());
 			}
 

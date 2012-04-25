@@ -16,18 +16,16 @@
  */
 package nats.codec;
 
+import nats.Constants;
 import nats.NatsServerException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelDownstreamHandler;
 import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 
@@ -36,6 +34,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Implements a Netty codec for converting upstream {@link ChannelBuffer}s to {@link ServerMessage} objects and
+ * downstream {@link ClientMessage} objects to {@code ChannelBuffer}s.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ClientCodec extends FrameDecoder implements ChannelDownstreamHandler {
@@ -56,6 +57,10 @@ public class ClientCodec extends FrameDecoder implements ChannelDownstreamHandle
 	private ServerPublishMessage message;
 	private int payloadSize;
 
+	public ClientCodec() {
+		this(Constants.DEFAULT_MAX_MESSAGE_SIZE);
+	}
+
 	public ClientCodec(int maxMessageSize) {
 		this.maxMessageSize = maxMessageSize;
 	}
@@ -74,10 +79,8 @@ public class ClientCodec extends FrameDecoder implements ChannelDownstreamHandle
 			int frameLength = indexOf(buffer, DELIMITER);
 			if (frameLength >= 0) {
 				if (frameLength > maxMessageSize) {
-					buffer.skipBytes(frameLength);
-					Channels.fireExceptionCaught(
-							ctx.getChannel(),
-							new TooLongFrameException("message size exceeds " + maxMessageSize + ": " + frameLength + " - discarded"));
+					buffer.skipBytes(frameLength + DELIMITER.capacity());
+					throwTooLongFrameException(ctx);
 				} else {
 					String command = buffer.readBytes(frameLength).toString(Charset.defaultCharset());
 					buffer.skipBytes(DELIMITER.capacity());
@@ -88,7 +91,16 @@ public class ClientCodec extends FrameDecoder implements ChannelDownstreamHandle
 				}
 			}
 		}
+		if (buffer.readableBytes() > maxMessageSize) {
+			throwTooLongFrameException(ctx);
+		}
 		return null;
+	}
+
+	private void throwTooLongFrameException(ChannelHandlerContext ctx) {
+		Channels.fireExceptionCaught(
+				ctx.getChannel(),
+				new TooLongFrameException("message size exceeds " + maxMessageSize));
 	}
 
 	@Override
@@ -116,12 +128,8 @@ public class ClientCodec extends FrameDecoder implements ChannelDownstreamHandle
 			final String replyTo = matcher.group(4);
 			final int length = Integer.valueOf(matcher.group(5));
 			message = new ServerPublishMessage(id, subject, queueGroup, replyTo);
-			if (length == 0) {
-				return message;
-			} else {
-				waitingMessagePayload = true;
-				payloadSize = length;
-			}
+			waitingMessagePayload = true;
+			payloadSize = length;
 			return null;
 		}
 		matcher = INFO_PATTERN.matcher(command);
@@ -143,15 +151,6 @@ public class ClientCodec extends FrameDecoder implements ChannelDownstreamHandle
 			return new ServerPongMessage();
 		}
 		throw new NatsServerException("Don't know how to handle the following sent by the Nats server: " + command);
-	}
-
-	private void handleMessagePayload(ChannelHandlerContext ctx, String payload) {
-		try {
-			message.setBody(payload);
-			Channels.fireMessageReceived(ctx, message);
-		} finally {
-			waitingMessagePayload = false;
-		}
 	}
 
 	/**
