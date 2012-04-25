@@ -33,14 +33,7 @@ import org.jboss.netty.handler.codec.string.StringEncoder;
  */
 public class ClientChannelPipelineFactory implements ChannelPipelineFactory {
 
-	public static final String PIPELINE_FRAME_DECODER = "frameDecoder";
-	public static final String PIPELINE_STRING_DECODER = "stringDecoder";
-	public static final String PIPELINE_STRING_ENCODER = "stringEncoder";
-	public static final String PIPELINE_FIXED_DECODER = "fixedDecoder";
-	public static final String PIPELINE_CODEC = "codec";
-
-	private static final StringDecoder decoder = new StringDecoder();
-	private static final StringEncoder encoder = new StringEncoder();
+	public static final String PIPELINE_CODEC = "nats-codec";
 
 	/**
 	 * The maximum message size this client will accept from a Nats server.
@@ -58,14 +51,7 @@ public class ClientChannelPipelineFactory implements ChannelPipelineFactory {
 	@Override
 	public ChannelPipeline getPipeline() {
 		final ChannelPipeline pipeline = Channels.pipeline();
-		final DelimiterBasedFrameDecoder delimiterBasedFrameDecoder = new DelimiterBasedFrameDecoder(
-				maxMessageSize,
-				ChannelBuffers.wrappedBuffer(new byte[]{'\r', '\n'})
-		);
-		pipeline.addFirst(PIPELINE_FRAME_DECODER, delimiterBasedFrameDecoder);
-		pipeline.addLast(PIPELINE_STRING_DECODER, decoder);
-		pipeline.addLast(PIPELINE_STRING_ENCODER, encoder);
-		pipeline.addLast(PIPELINE_CODEC, new ClientCodec());
+		pipeline.addLast(PIPELINE_CODEC, new ClientCodec(maxMessageSize));
 		return pipeline;
 	}
 }

@@ -17,6 +17,9 @@
 package nats.codec;
 
 import nats.NatsServerException;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelDownstreamHandler;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandler;
@@ -25,14 +28,17 @@ import org.jboss.netty.channel.ChannelUpstreamHandler;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
+import org.jboss.netty.handler.codec.frame.FrameDecoder;
+import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 
+import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec implements ChannelUpstreamHandler, ChannelDownstreamHandler {
+public class ClientCodec extends FrameDecoder implements ChannelDownstreamHandler {
 
 	// Regular expressions used for parsing server messages
 	private static final Pattern MSG_PATTERN = Pattern.compile("^MSG\\s+(\\S+)\\s+(\\S+)\\s+((\\S+)[^\\S\\r\\n]+)?(\\d+)", Pattern.CASE_INSENSITIVE);
@@ -42,25 +48,47 @@ public class ClientCodec implements ChannelUpstreamHandler, ChannelDownstreamHan
 	private static final Pattern PONG_PATTERN = Pattern.compile("^PONG", Pattern.CASE_INSENSITIVE);
 	private static final Pattern INFO_PATTERN = Pattern.compile("^INFO\\s+([^\\r\\n]+)", Pattern.CASE_INSENSITIVE);
 
+	private static final ChannelBuffer DELIMITER = ChannelBuffers.wrappedBuffer(new byte[] { '\r', '\n' });
+
+	private final int maxMessageSize;
+
 	private boolean waitingMessagePayload = false;
-	private ChannelHandler delimiterBasedFrameDecoder;
 	private ServerPublishMessage message;
+	private int payloadSize;
+
+	public ClientCodec(int maxMessageSize) {
+		this.maxMessageSize = maxMessageSize;
+	}
 
 	@Override
-	public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-		if (e instanceof MessageEvent) {
-			MessageEvent messageEvent = (MessageEvent) e;
-			final Object message = messageEvent.getMessage();
-			if (message instanceof String) {
-				if (waitingMessagePayload) {
-					handleMessagePayload(ctx, (String) message);
+	protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer) throws Exception {
+		if (waitingMessagePayload) {
+			if (buffer.readableBytes() >= payloadSize + DELIMITER.capacity()) {
+				String body = buffer.readBytes(payloadSize).toString(Charset.defaultCharset());
+				buffer.skipBytes(DELIMITER.capacity());
+				message.setBody(body);
+				waitingMessagePayload = false;
+				return message;
+			}
+		} else {
+			int frameLength = indexOf(buffer, DELIMITER);
+			if (frameLength >= 0) {
+				if (frameLength > maxMessageSize) {
+					buffer.skipBytes(frameLength);
+					Channels.fireExceptionCaught(
+							ctx.getChannel(),
+							new TooLongFrameException("message size exceeds " + maxMessageSize + ": " + frameLength + " - discarded"));
 				} else {
-					handleCommand(ctx, (String) message);
+					String command = buffer.readBytes(frameLength).toString(Charset.defaultCharset());
+					buffer.skipBytes(DELIMITER.capacity());
+					ServerMessage serverMessage = decodeCommand(command);
+					if (serverMessage != null) {
+						return serverMessage;
+					}
 				}
-				return;
 			}
 		}
-		ctx.sendUpstream(e);
+		return null;
 	}
 
 	@Override
@@ -70,14 +98,15 @@ public class ClientCodec implements ChannelUpstreamHandler, ChannelDownstreamHan
 			if (messageEvent.getMessage() instanceof ClientMessage) {
 				ClientMessage message = (ClientMessage) messageEvent.getMessage();
 				final String encodedMessage = message.encode();
-				Channels.write(ctx, e.getFuture(), encodedMessage, messageEvent.getRemoteAddress());
+				final ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(encodedMessage.getBytes());
+				Channels.write(ctx, e.getFuture(), buffer, messageEvent.getRemoteAddress());
 				return;
 			}
 		}
 		ctx.sendDownstream(e);
 	}
 
-	private void handleCommand(ChannelHandlerContext ctx, String command) {
+	private ServerMessage decodeCommand(String command) {
 		Matcher matcher = MSG_PATTERN.matcher(command);
 		if (matcher.matches()) {
 			final String subject = matcher.group(1);
@@ -88,38 +117,30 @@ public class ClientCodec implements ChannelUpstreamHandler, ChannelDownstreamHan
 			final int length = Integer.valueOf(matcher.group(5));
 			message = new ServerPublishMessage(id, subject, queueGroup, replyTo);
 			if (length == 0) {
-				Channels.fireMessageReceived(ctx, message);
+				return message;
 			} else {
-				delimiterBasedFrameDecoder = ctx.getPipeline().replace(
-						ClientChannelPipelineFactory.PIPELINE_FRAME_DECODER,
-						ClientChannelPipelineFactory.PIPELINE_FIXED_DECODER,
-						new FixedLengthFrameDecoder(length));
 				waitingMessagePayload = true;
+				payloadSize = length;
 			}
-			return;
+			return null;
 		}
 		matcher = INFO_PATTERN.matcher(command);
 		if (matcher.matches()) {
-			Channels.fireMessageReceived(ctx, new ServerInfoMessage(matcher.group(1)));
-			return;
+			return new ServerInfoMessage(matcher.group(1));
 		}
 		matcher = OK_PATTERN.matcher(command);
 		if (matcher.matches()) {
-			Channels.fireMessageReceived(ctx, ServerOkMessage.OK_MESSAGE);
-			return;
+			return ServerOkMessage.OK_MESSAGE;
 		}
 		matcher = ERR_PATTERN.matcher(command);
 		if (matcher.matches()) {
-			Channels.fireMessageReceived(ctx, new ServerErrorMessage(matcher.group(1)));
-			return;
+			return new ServerErrorMessage(matcher.group(1));
 		}
 		if (PING_PATTERN.matcher(command).matches()) {
-			Channels.fireMessageReceived(ctx, new ServerPingMessage());
-			return;
+			return new ServerPingMessage();
 		}
 		if (PONG_PATTERN.matcher(command).matches()) {
-			Channels.fireMessageReceived(ctx, new ServerPongMessage());
-			return;
+			return new ServerPongMessage();
 		}
 		throw new NatsServerException("Don't know how to handle the following sent by the Nats server: " + command);
 	}
@@ -130,8 +151,39 @@ public class ClientCodec implements ChannelUpstreamHandler, ChannelDownstreamHan
 			Channels.fireMessageReceived(ctx, message);
 		} finally {
 			waitingMessagePayload = false;
-			ctx.getPipeline().replace(ClientChannelPipelineFactory.PIPELINE_FIXED_DECODER, ClientChannelPipelineFactory.PIPELINE_FRAME_DECODER, delimiterBasedFrameDecoder);
 		}
+	}
+
+	/**
+	 * Returns the number of bytes between the readerIndex of the haystack and
+	 * the first needle found in the haystack.  -1 is returned if no needle is
+	 * found in the haystack.
+	 *
+	 *
+	 * Copied from {@link org.jboss.netty.handler.codec.frame.DelimiterBasedFrameDecoder}.
+	 */
+	private static int indexOf(ChannelBuffer haystack, ChannelBuffer needle) {
+		for (int i = haystack.readerIndex(); i < haystack.writerIndex(); i++) {
+			int haystackIndex = i;
+			int needleIndex;
+			for (needleIndex = 0; needleIndex < needle.capacity(); needleIndex++) {
+				if (haystack.getByte(haystackIndex) != needle.getByte(needleIndex)) {
+					break;
+				} else {
+					haystackIndex++;
+					if (haystackIndex == haystack.writerIndex() &&
+							needleIndex != needle.capacity() - 1) {
+						return -1;
+					}
+				}
+			}
+
+			if (needleIndex == needle.capacity()) {
+				// Found the needle from the haystack!
+				return i - haystack.readerIndex();
+			}
+		}
+		return -1;
 	}
 
 }

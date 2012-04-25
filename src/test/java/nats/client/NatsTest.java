@@ -61,6 +61,14 @@ public class NatsTest {
 		}
 	}
 
+	@Test
+	public void disableReconnectWithNoRunningServers() throws Exception {
+		final Nats nats = new Nats.Builder().addHost("nats://1.2.3.4").automaticReconnect(false).connect();
+		nats.getConnectionStatus().awaitConnectionClose(10, TimeUnit.SECONDS);
+		Assert.assertFalse(nats.getConnectionStatus().isConnected());
+		Assert.assertFalse(nats.getConnectionStatus().isServerReady());
+	}
+
 	@Test(dependsOnMethods = "connect")
 	public void simplePublishSubscribe() throws Exception {
 		new NatsTestCase() {
@@ -145,12 +153,26 @@ public class NatsTest {
 				Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(10, TimeUnit.SECONDS), "Failed to connect to server.");
 
 				final Subscription subscription = nats.subscribe(SUBJECT);
+				 // Use the second subscription to make sure messages are being received but not being sent to the
+				 // closed subscription
+				final Subscription subscription2 = nats.subscribe(SUBJECT);
+
+				final CountDownLatch latch = new CountDownLatch(3);
+				subscription2.addMessageHandler(new MessageHandler() {
+					@Override
+					public void onMessage(Message message) {
+						latch.countDown();
+					}
+				});
+
 				nats.publish(SUBJECT, "First message").await();
-				nats.publish("ping", "Flush things through the server.").await(); // TODO Maybe we do re-enable pings.
+				final SubscriptionIterator iterator = subscription.iterator();
+				iterator.next(2, TimeUnit.SECONDS);
 				Assert.assertEquals(subscription.getReceivedMessages(), 1, "The first message didn't arrive.");
 				subscription.close();
 				nats.publish(SUBJECT, "Second message").await();
-				nats.publish("ping", "Flush things through the server.").await();
+				nats.publish(SUBJECT, "Third message").await();
+				Assert.assertTrue(latch.await(5, TimeUnit.SECONDS), "Messages were not received on second subscription.");
 				Assert.assertEquals(subscription.getReceivedMessages(), 1, "The subscription didn't actually shut down, more than one message arrived.");
 			}
 		};

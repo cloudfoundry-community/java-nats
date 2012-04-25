@@ -369,19 +369,6 @@ public class Nats implements Closeable {
 
 	private Channel createChannel(ChannelFactory channelFactory) {
 		final ChannelPipeline pipeline = clientChannelPipelineFactory.getPipeline();
-		pipeline.addBefore(ClientChannelPipelineFactory.PIPELINE_CODEC, "debug", new SimpleChannelHandler() {
-			@Override
-			public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-				super.writeRequested(ctx, e);
-				logger.log(NatsLogger.Level.DEBUG, "Sent: " + e.getMessage());
-			}
-
-			@Override
-			public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-				logger.log(NatsLogger.Level.DEBUG, "Received: " + e.getMessage());
-				super.messageReceived(ctx, e);
-			}
-		});
 		pipeline.addLast("handler", new AbstractClientChannelHandler() {
 			@Override
 			public void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message) {

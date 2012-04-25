@@ -19,7 +19,7 @@ package nats.codec;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ServerErrorMessage {
+public class ServerErrorMessage implements ServerMessage {
 
 	private final String errorMessage;
 
