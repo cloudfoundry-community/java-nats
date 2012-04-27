@@ -13,7 +13,7 @@
 
 	<groupId>com.github.jnats</groupId>
 	<artifactId>nats-client</artifactId>
-	<version>0.1</version>
+	<version>0.2</version>
 
 	<name>Java NATS</name>
 	<description>A Java NATS client.</description>
