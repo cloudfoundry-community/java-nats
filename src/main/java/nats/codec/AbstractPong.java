@@ -20,7 +20,10 @@ package nats.codec;
  * @author Mike Heath <elcapo@gmail.com>
  */
 class AbstractPong {
+
+	public static final String CMD_PONG = "PONG";
+
 	public String encode() {
-		return "PONG\r\n";
+		return CMD_PONG + "\r\n";
 	}
 }

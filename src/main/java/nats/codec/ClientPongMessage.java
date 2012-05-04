@@ -20,5 +20,5 @@ package nats.codec;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ClientPongMessage extends AbstractPong implements ClientMessage {
-	public static final ClientPongMessage PONG_MESSAGE = new ClientPongMessage();
+	public static final ClientPongMessage PONG = new ClientPongMessage();
 }

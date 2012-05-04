@@ -20,7 +20,10 @@ package nats.codec;
  * @author Mike Heath <elcapo@gmail.com>
  */
 class AbstractPing {
+
+	public static final String CMD_PING = "PING";
+
 	public String encode() {
-		return "PING\r\n";
+		return CMD_PING + "\r\n";
 	}
 }

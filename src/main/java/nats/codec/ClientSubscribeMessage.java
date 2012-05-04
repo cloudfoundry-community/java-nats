@@ -21,26 +21,22 @@ package nats.codec;
  */
 public class ClientSubscribeMessage implements ClientMessage, ClientRequest {
 
-	private static final String CMD_SUBSCRIBE = "SUB";
+	public static final String CMD_SUBSCRIBE = "SUB";
 
-	private final int id;
+	private final String id;
 
 	private final String subject;
 
 	private final String queueGroup;
 
-	public ClientSubscribeMessage(int id, String subject) {
-		this(id, subject, null);
-	}
-
-	public ClientSubscribeMessage(int id, String subject, String queueGroup) {
-		// TODO Validate subject and queueGroup -- If they have white space it will break the protocol -- What is valid? -- Can't be empty. subject also has wild cards which must be valid.
+	public ClientSubscribeMessage(String id, String subject, String queueGroup) {
+		// TODO Validate subject and queueGroup -- If they have white space it will break the protocol -- What is valid? -- Subject can't be empty. subject also has wild cards which must be valid.
 		this.id = id;
 		this.queueGroup = queueGroup;
 		this.subject = subject;
 	}
 
-	public int getId() {
+	public String getId() {
 		return id;
 	}
 

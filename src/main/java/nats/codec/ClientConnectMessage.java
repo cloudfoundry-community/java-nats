@@ -16,62 +16,40 @@
  */
 package nats.codec;
 
+import nats.NatsException;
+import org.codehaus.jackson.map.ObjectMapper;
+
+import java.io.IOException;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ClientConnectMessage implements ClientMessage, ClientRequest {
 
-	private static final String CMD_CONNECT = "CONNECT";
+	public static final String CMD_CONNECT = "CONNECT";
 
-	private final String user;
-	private final String password;
-	private final boolean pedantic;
-	private final boolean verbose;
+	private final ConnectBody body;
 
-	public ClientConnectMessage(String user, String password, boolean pedantic, boolean verbose) {
-		this.user = user;
-		this.password = password;
-		this.pedantic = pedantic;
-		this.verbose = verbose;
+	public ClientConnectMessage(ConnectBody body) {
+		this.body = body;
 	}
 
-	public String getPassword() {
-		return password;
-	}
-
-	public boolean isPedantic() {
-		return pedantic;
-	}
-
-	public String getUser() {
-		return user;
-	}
-
-	public boolean isVerbose() {
-		return verbose;
+	public ConnectBody getBody() {
+		return body;
 	}
 
 	@Override
 	public String encode() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(CMD_CONNECT);
-		builder.append(" {");
-		if (user != null) {
-			appendJsonField(builder, "user", user);
-			appendJsonField(builder, "pass", password);
+		builder.append(CMD_CONNECT).append(" ");
+		ObjectMapper mapper = new ObjectMapper();
+		try {
+			builder.append(mapper.writeValueAsString(body));
+		} catch (IOException e) {
+			throw new NatsException(e);
 		}
-		appendJsonField(builder, "verbose", Boolean.toString(verbose));
-		appendJsonField(builder, "pedantic", Boolean.toString(pedantic));
-		builder.append("}\r\n");
+		builder.append("\r\n");
 		return builder.toString();
-	}
-
-	private void appendJsonField(StringBuilder builder, String field, String value) {
-		if (builder.length() > CMD_CONNECT.length() + 2) {
-			builder.append(',');
-		}
-		// TODO We need some real JSON encoding to escape the values properly
-		builder.append('"').append(field).append('"').append(':').append('"').append(value).append('"');
 	}
 
 }

@@ -93,7 +93,7 @@ public abstract class AbstractClientChannelHandler extends SimpleChannelHandler 
 	protected abstract void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message);
 
 	protected void serverPing(ChannelHandlerContext ctx) {
-		ctx.getChannel().write(ClientPongMessage.PONG_MESSAGE);
+		ctx.getChannel().write(ClientPongMessage.PONG);
 	}
 
 	protected abstract void pongResponse(ChannelHandlerContext ctx, ClientPingMessage pingMessage, ServerPongMessage pongMessage);

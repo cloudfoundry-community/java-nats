@@ -21,22 +21,22 @@ package nats.codec;
  */
 public class ClientUnsubscribeMessage implements ClientMessage, ClientRequest {
 
-	private static final String CMD_UNSUBSCRIBE = "UNSUB";
+	public static final String CMD_UNSUBSCRIBE = "UNSUB";
 
-	private final int id;
+	private final String id;
 
 	private final Integer maxMessages;
 
-	public ClientUnsubscribeMessage(int id) {
+	public ClientUnsubscribeMessage(String id) {
 		this(id, null);
 	}
 
-	public ClientUnsubscribeMessage(int id, Integer maxMessages) {
+	public ClientUnsubscribeMessage(String id, Integer maxMessages) {
 		this.id = id;
 		this.maxMessages = maxMessages;
 	}
 
-	public int getId() {
+	public String getId() {
 		return id;
 	}
 

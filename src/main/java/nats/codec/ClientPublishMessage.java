@@ -21,23 +21,31 @@ package nats.codec;
  */
 public class ClientPublishMessage implements ClientMessage, ClientRequest {
 
-	private static final String CMD_PUBLISH = "PUB";
+	public static final String CMD_PUBLISH = "PUB";
 
 	private final String subject;
 
-	private final String message;
-
 	private final String replyTo;
 
-	public ClientPublishMessage(String subject, String message, String replyTo) {
-		// TODO Validate subject, message and replyTo What is valid?
-		this.subject = subject;
-		this.message = message;
-		this.replyTo = replyTo;
+	private String body;
+
+	public ClientPublishMessage(String subject, String replyTo) {
+		this(subject, null, replyTo);
 	}
 
-	public String getMessage() {
-		return message;
+	public ClientPublishMessage(String subject, String body, String replyTo) {
+		// TODO Validate subject, replyTo What is valid?
+		this.subject = subject;
+		this.replyTo = replyTo;
+		setBody(body);
+	}
+
+	public String getBody() {
+		return body;
+	}
+
+	public void setBody(String body) {
+		this.body = body;
 	}
 
 	public String getReplyTo() {
@@ -55,7 +63,7 @@ public class ClientPublishMessage implements ClientMessage, ClientRequest {
 		if (replyTo != null) {
 			builder.append(replyTo).append(' ');
 		}
-		builder.append(message.length()).append("\r\n").append(message).append("\r\n");
+		builder.append(body.length()).append("\r\n").append(body).append("\r\n");
 		return builder.toString();
 	}
 }

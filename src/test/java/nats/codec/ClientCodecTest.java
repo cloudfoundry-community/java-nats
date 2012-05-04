@@ -24,12 +24,12 @@ import org.testng.annotations.Test;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodecTest {
+public class ClientCodecTest extends AbstractDecoderTest<ServerMessage> {
 
 	@Test
 	public void serverError() throws Exception {
 		final String errorMessage = "'You are doing it wrong'";
-		decoderTest("-ERR " + errorMessage + "\r\n", new DecoderAssertions() {
+		decoderTest("-ERR " + errorMessage + "\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -42,7 +42,7 @@ public class ClientCodecTest {
 	@Test
 	public void serverInfo() throws Exception {
 		final String jsonPayload = "{\"server_id\":\"8d8222a15560538b92751995be\",\"host\":\"0.0.0.0\",\"port\":4222,\"version\":\"0.4.22\",\"auth_required\":false,\"ssl_required\":false,\"max_payload\":1048576}";
-		decoderTest("INFO " + jsonPayload + "\r\n", new DecoderAssertions() {
+		decoderTest("INFO " + jsonPayload + "\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -54,7 +54,7 @@ public class ClientCodecTest {
 
 	@Test
 	public void serverOk() throws Exception {
-		decoderTest("+OK\r\n", new DecoderAssertions() {
+		decoderTest("+OK\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -66,7 +66,7 @@ public class ClientCodecTest {
 
 	@Test
 	public void serverPing() throws Exception {
-		decoderTest("PING\r\n", new DecoderAssertions() {
+		decoderTest("PING\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -78,7 +78,7 @@ public class ClientCodecTest {
 
 	@Test
 	public void serverPong() throws Exception {
-		decoderTest("PONG\r\n", new DecoderAssertions() {
+		decoderTest("PONG\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -91,9 +91,9 @@ public class ClientCodecTest {
 	@Test
 	public void publish() throws Exception {
 		final String subject = "foo.bar";
-		final int id = 1;
+		final String id = "1";
 		final String body = "Hi there";
-		decoderTest("MSG " + subject + " " + id + " 8\r\n" + body + "\r\n", new DecoderAssertions() {
+		decoderTest("MSG " + subject + " " + id + " 8\r\n" + body + "\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -109,8 +109,8 @@ public class ClientCodecTest {
 	@Test
 	public void publishEmptyBody() throws Exception {
 		final String subject = "foo";
-		final int id = 2;
-		decoderTest("MSG " + subject + " " + id + " 0\r\n\r\n", new DecoderAssertions() {
+		final String id = "bob";
+		decoderTest("MSG " + subject + " " + id + " 0\r\n\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -126,10 +126,10 @@ public class ClientCodecTest {
 	@Test
 	public void publishWithReply() throws Exception {
 		final String subject = "request.foo";
-		final int id = 3;
+		final String id = "3";
 		final String replyTo = "reply.subject";
 		final String body = "bar";
-		decoderTest("MSG " + subject + " " + id + " " + replyTo + " 3\r\n" + body + "\r\n", new DecoderAssertions() {
+		decoderTest("MSG " + subject + " " + id + " " + replyTo + " 3\r\n" + body + "\r\n", new DecoderAssertions<ServerMessage>() {
 			@Override
 			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
 				Assert.assertEquals(1, decoderEmbedder.size());
@@ -142,19 +142,8 @@ public class ClientCodecTest {
 		});
 	}
 
-	protected void decoderTest(String packet, DecoderAssertions resultAssertions) throws Exception {
-		for (int packetSize = 1; packetSize < packet.length(); packetSize++) {
-			DecoderEmbedder<ServerMessage> decoderEmbedder = new DecoderEmbedder<ServerMessage>(new ClientCodec());
-			for (int i = 0; i < packet.length(); i+= packetSize) {
-				decoderEmbedder.offer(ChannelBuffers.wrappedBuffer(packet.substring(i, Math.min(i + packetSize, packet.length())).getBytes()));
-			}
-			Assert.assertTrue(decoderEmbedder.finish(), "The decode should have at least one message available.");
-			resultAssertions.runAssertions(decoderEmbedder);
-		}
+	@Override
+	protected DecoderEmbedder<ServerMessage> createDecoderEmbedder() {
+		return new DecoderEmbedder<ServerMessage>(new ClientCodec());
 	}
-
-	private interface DecoderAssertions {
-		void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception;
-	}
-
 }

@@ -28,13 +28,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class NatsTest {
+public class NatsIT {
 
 	private static final int DEFAULT_START_PORT = 4000;
 
 	private static final String SUBJECT = "test-subject";
 	
-	@Test
+//	@Test
 	public void connect() throws Exception {
 		Process natsServer = startsNatsServer(DEFAULT_START_PORT);
 		Nats nats = null;
@@ -51,7 +51,7 @@ public class NatsTest {
 		}
 	}
 
-	@Test
+//	@Test
 	public void connectAttemptWithNoHosts() {
 		try {
 			new Nats.Builder().connect();
@@ -61,7 +61,7 @@ public class NatsTest {
 		}
 	}
 
-	@Test
+//	@Test
 	public void disableReconnectWithNoRunningServers() throws Exception {
 		final Nats nats = new Nats.Builder().addHost("nats://1.2.3.4").automaticReconnect(false).connect();
 		nats.getConnectionStatus().awaitConnectionClose(10, TimeUnit.SECONDS);
@@ -69,7 +69,7 @@ public class NatsTest {
 		Assert.assertFalse(nats.getConnectionStatus().isServerReady());
 	}
 
-	@Test(dependsOnMethods = "connect")
+//	@Test(dependsOnMethods = "connect")
 	public void simplePublishSubscribe() throws Exception {
 		new NatsTestCase() {
 			@Override
@@ -87,7 +87,7 @@ public class NatsTest {
 		};
 	}
 
-	@Test(dependsOnMethods = "simplePublishSubscribe")
+//	@Test(dependsOnMethods = "simplePublishSubscribe")
 	public void simpleRequestReply() throws Exception {
 		new NatsTestCase() {
 			@Override
@@ -114,7 +114,7 @@ public class NatsTest {
 		};
 	}
 	
-	@Test(dependsOnMethods = "simplePublishSubscribe")
+//	@Test(dependsOnMethods = "simplePublishSubscribe")
 	public void resubscribeAfterServerKill() throws Exception {
 		new NatsTestCase(DEFAULT_START_PORT, DEFAULT_START_PORT + 1) {
 
@@ -145,7 +145,7 @@ public class NatsTest {
 		};
 	}
 
-	@Test(dependsOnMethods = "simplePublishSubscribe", timeOut = 10000)
+//	@Test(dependsOnMethods = "simplePublishSubscribe", timeOut = 10000)
 	public void closeSubscription() throws Exception {
 		new NatsTestCase() {
 			@Override
@@ -178,7 +178,7 @@ public class NatsTest {
 		};
 	}
 
-	@Test(dependsOnMethods = "simplePublishSubscribe")
+//	@Test(dependsOnMethods = "simplePublishSubscribe")
 	public void blockingSubscription() throws Exception {
 		new NatsTestCase() {
 			@Override
@@ -193,15 +193,30 @@ public class NatsTest {
 		};
 	}
 
-	static Process startsNatsServer(int port) throws IOException {
-		ProcessBuilder builder = new ProcessBuilder("nats-server", "-p", Integer.toString(port)).inheritIO();
-		final Process process = builder.start();
+	static Process startsNatsServer(int port) throws IOException, InterruptedException {
+		// Make sure previous server has shutdown.
 		boolean done = false;
+		System.out.println("Waiting for server on port " + port + " to shutdown.");
+		while (!done) {
+			try {
+				new Socket("localhost", port).close();
+				Thread.sleep(100);
+			} catch (IOException e) {
+				done = true;
+			}
+		}
+		System.out.println("Done!");
+
+		ProcessBuilder builder = new ProcessBuilder("nats-server", "-p", Integer.toString(port));
+		final Process process = builder.start();
+		done = false;
+		System.out.println("Waiting for nats server to start up on port " + port);
 		while (!done) {
 			try {
 				new Socket("localhost", port).close();
 				done = true;
 			} catch (IOException e) {
+				Thread.sleep(100);
 			}
 		}
 		System.out.println("Nats server started on port " + port);
@@ -223,18 +238,7 @@ public class NatsTest {
 				natsServers[i] = startsNatsServer(port);
 				builder.addHost("nats://localhost:" + port);
 			}
-			builder.logger(new NatsLogger() {
-
-				@Override
-				public void log(Level level, String message) {
-					System.out.println(level.toString() + ": " + message);
-				}
-
-				@Override
-				public void log(Level level, Throwable t) {
-					t.printStackTrace();
-				}
-			});
+			builder.logger(NatsLogger.DEBUG_LOGGER);
 			modifyNatsConfig(builder);
 			Nats nats = builder.connect();
 			try {

@@ -30,6 +30,8 @@ import nats.codec.ClientPublishMessage;
 import nats.codec.ClientRequest;
 import nats.codec.ClientSubscribeMessage;
 import nats.codec.ClientUnsubscribeMessage;
+import nats.codec.ConnectBody;
+import nats.codec.NatsDecodingException;
 import nats.codec.ServerErrorMessage;
 import nats.codec.ServerInfoMessage;
 import nats.codec.ServerOkMessage;
@@ -146,7 +148,7 @@ public class Nats implements Closeable {
 	 *
 	 * <p>Must hold monitor #subscription to access.
 	 */
-	private final Map<Integer, NatsSubscription> subscriptions = new HashMap<Integer, NatsSubscription>();
+	private final Map<String, NatsSubscription> subscriptions = new HashMap<String, NatsSubscription>();
 
 	/**
 	 * Counter used for obtaining subscription ids. Each subscription must have its own unique id that is sent to the
@@ -455,7 +457,8 @@ public class Nats implements Closeable {
 			@Override
 			public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 				Throwable t = e.getCause();
-				if (t instanceof TooLongFrameException) {
+				if (t instanceof TooLongFrameException || t instanceof NatsDecodingException) {
+					logger.log(NatsLogger.Level.ERROR, "Closing due to: " + t);
 					close();
 				}
 				exceptionHandler.onException(e.getCause());
@@ -503,7 +506,7 @@ public class Nats implements Closeable {
 				// If connection is successful, set connection attempts to 0, otherwise increase connection attempts.
 				if (future.isSuccess()) {
 					finalServer.resetConnectionAttempts();
-					channel.write(new ClientConnectMessage(finalServer.user, finalServer.password, pedantic, verbose));
+					channel.write(new ClientConnectMessage(new ConnectBody(finalServer.user, finalServer.password, pedantic, verbose)));
 				} else {
 					finalServer.incConnectionAttempts();
 				}
@@ -672,7 +675,7 @@ public class Nats implements Closeable {
 	 */
 	public Subscription subscribe(final String subject, final String queueGroup, final Integer maxMessages) {
 		assertNatsOpen();
-		final Integer id = subscriptionId.incrementAndGet();
+		final String id = Integer.toString(subscriptionId.incrementAndGet());
 		NatsSubscription subscription = new NatsSubscription() {
 			private final AtomicInteger receivedMessages = new AtomicInteger();
 			private final List<MessageHandler> handlers = new ArrayList<MessageHandler>();
@@ -832,7 +835,7 @@ public class Nats implements Closeable {
 			}
 
 			@Override
-			public Integer getId() {
+			public String getId() {
 				return id;
 			}
 		};
@@ -846,7 +849,7 @@ public class Nats implements Closeable {
 
 	private void writeSubscription(NatsSubscription subscription) {
 		if (connectionStatus.isServerReady()) {
-			channel.write(new ClientSubscribeMessage(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
+			channel.write(new ClientSubscribeMessage(subscription.getId().toString(), subscription.getSubject(), subscription.getQueueGroup()));
 		}
 	}
 
@@ -971,7 +974,7 @@ public class Nats implements Closeable {
 	
 	private static interface NatsSubscription extends Subscription {
 		void onMessage(String subject, String message, String replyTo);
-		Integer getId();
+		String getId();
 	}
 
 	private static interface HasFuture {
