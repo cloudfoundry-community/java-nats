@@ -16,11 +16,20 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ServerOkMessage implements ServerMessage {
 
+	public static final String CMD_OK = "+OK";
+	private static final ChannelBuffer OK_BUFFER = ChannelBufferUtil.directBuffer(CMD_OK + "\r\n");
+
 	public static final ServerOkMessage OK_MESSAGE = new ServerOkMessage();
 
+	@Override
+	public ChannelBuffer encode() {
+		return OK_BUFFER;
+	}
 }

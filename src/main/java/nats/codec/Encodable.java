@@ -21,12 +21,8 @@ import org.jboss.netty.buffer.ChannelBuffer;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-class AbstractPong {
+public interface Encodable {
 
-	public static final String CMD_PONG = "PONG";
-	private static final ChannelBuffer PONG_BUFFER = ChannelBufferUtil.wrappedBuffer(CMD_PONG + "\r\n");
+	ChannelBuffer encode();
 
-	public ChannelBuffer encode() {
-		return PONG_BUFFER.duplicate();
-	}
 }

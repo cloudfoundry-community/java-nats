@@ -16,11 +16,17 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ServerInfoMessage implements ServerMessage {
 
+	public static final String CMD_INFO = "INFO";
+
+	// TODO Make an InfoBody class for going back and forth between the INFO json payload.
 	private final String info;
 
 	public ServerInfoMessage(String info) {
@@ -29,5 +35,15 @@ public class ServerInfoMessage implements ServerMessage {
 
 	public String getInfo() {
 		return info;
+	}
+
+	@Override
+	public ChannelBuffer encode() {
+		final ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+		buffer.writeBytes(CMD_INFO.getBytes());
+		buffer.writeByte(' ');
+		buffer.writeBytes(info.getBytes());
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+		return buffer;
 	}
 }

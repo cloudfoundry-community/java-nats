@@ -18,6 +18,8 @@ package nats.codec;
 
 import nats.NatsException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
 
 import java.io.IOException;
 
@@ -39,17 +41,19 @@ public class ClientConnectMessage implements ClientMessage, ClientRequest {
 	}
 
 	@Override
-	public String encode() {
-		StringBuilder builder = new StringBuilder();
-		builder.append(CMD_CONNECT).append(" ");
-		ObjectMapper mapper = new ObjectMapper();
+	public ChannelBuffer encode() {
+		ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+		buffer.writeBytes(CMD_CONNECT.getBytes());
+		buffer.writeByte(' ');
 		try {
-			builder.append(mapper.writeValueAsString(body));
+			ObjectMapper mapper = new ObjectMapper();
+			final String jsonBody = mapper.writeValueAsString(body);
+			buffer.writeBytes(jsonBody.getBytes());
 		} catch (IOException e) {
 			throw new NatsException(e);
 		}
-		builder.append("\r\n");
-		return builder.toString();
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+		return buffer;
 	}
 
 }

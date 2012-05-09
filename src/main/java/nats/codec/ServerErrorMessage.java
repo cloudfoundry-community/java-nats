@@ -16,10 +16,16 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ServerErrorMessage implements ServerMessage {
+
+	public static final String CMD_ERR = "-ERR";
+	private static final ChannelBuffer ERROR_BUFFER = ChannelBufferUtil.directBuffer(CMD_ERR + "\r\n");
 
 	private final String errorMessage;
 
@@ -29,5 +35,18 @@ public class ServerErrorMessage implements ServerMessage {
 
 	public String getErrorMessage() {
 		return errorMessage;
+	}
+
+	@Override
+	public ChannelBuffer encode() {
+		if (errorMessage == null) {
+			return ERROR_BUFFER;
+		}
+		final ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+		buffer.writeBytes(CMD_ERR.getBytes());
+		buffer.writeByte(' ');
+		buffer.writeBytes(errorMessage.getBytes());
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+		return buffer;
 	}
 }

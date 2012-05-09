@@ -19,8 +19,6 @@ package nats.codec;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface ClientMessage {
-
-	String encode();
+public interface ClientMessage extends Encodable {
 
 }

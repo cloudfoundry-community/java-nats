@@ -16,19 +16,13 @@
  */
 package nats.codec;
 
-import nats.Constants;
-import nats.NatsServerException;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelDownstreamHandler;
 import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 
-import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -104,8 +98,7 @@ public class ClientCodec extends AbstractCodec implements ChannelDownstreamHandl
 			MessageEvent messageEvent = (MessageEvent) e;
 			if (messageEvent.getMessage() instanceof ClientMessage) {
 				ClientMessage message = (ClientMessage) messageEvent.getMessage();
-				final String encodedMessage = message.encode();
-				final ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(encodedMessage.getBytes());
+				final ChannelBuffer buffer = message.encode();
 				Channels.write(ctx, e.getFuture(), buffer, messageEvent.getRemoteAddress());
 				return;
 			}

@@ -16,6 +16,9 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
@@ -49,13 +52,18 @@ public class ClientSubscribeMessage implements ClientMessage, ClientRequest {
 	}
 
 	@Override
-	public String encode() {
-		StringBuilder builder = new StringBuilder();
-		builder.append(CMD_SUBSCRIBE).append(' ').append(subject).append(' ');
+	public ChannelBuffer encode() {
+		ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+		buffer.writeBytes(CMD_SUBSCRIBE.getBytes());
+		buffer.writeByte(' ');
+		buffer.writeBytes(subject.getBytes());
+		buffer.writeByte(' ');
 		if (queueGroup != null) {
-			builder.append(queueGroup).append(' ');
+			buffer.writeBytes(queueGroup.getBytes());
+			buffer.writeByte(' ');
 		}
-		builder.append(id).append("\r\n");
-		return builder.toString();
+		buffer.writeBytes(id.getBytes());
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+		return buffer;
 	}
 }

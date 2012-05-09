@@ -10,7 +10,6 @@ import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 
 import java.nio.charset.Charset;
-import java.rmi.activation.ActivationGroupDesc;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>

@@ -16,6 +16,9 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
@@ -57,13 +60,26 @@ public class ClientPublishMessage implements ClientMessage, ClientRequest {
 	}
 
 	@Override
-	public String encode() {
-		StringBuilder builder = new StringBuilder();
-		builder.append(CMD_PUBLISH).append(' ').append(subject).append(' ');
+	public ChannelBuffer encode() {
+		ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+
+		buffer.writeBytes(CMD_PUBLISH.getBytes());
+		buffer.writeByte(' ');
+
+		buffer.writeBytes(subject.getBytes());
+		buffer.writeByte(' ');
+
 		if (replyTo != null) {
-			builder.append(replyTo).append(' ');
+			buffer.writeBytes(replyTo.getBytes());
+			buffer.writeByte(' ');
 		}
-		builder.append(body.length()).append("\r\n").append(body).append("\r\n");
-		return builder.toString();
+
+		final byte[] bodyBytes = body.getBytes();
+		ChannelBufferUtil.writeIntegerAsString(buffer, bodyBytes.length);
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+		buffer.writeBytes(bodyBytes);
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+
+		return buffer;
 	}
 }

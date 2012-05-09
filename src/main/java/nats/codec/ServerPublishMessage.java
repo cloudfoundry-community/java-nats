@@ -16,10 +16,15 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ServerPublishMessage implements ServerMessage {
+
+	public static final String CMD_PUB = "MSG";
 
 	private final String id;
 	private final String subject;
@@ -56,5 +61,27 @@ public class ServerPublishMessage implements ServerMessage {
 
 	public void setBody(String body) {
 		this.body = body;
+	}
+
+	@Override
+	public ChannelBuffer encode() {
+		final ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+		buffer.writeBytes(CMD_PUB.getBytes());
+		buffer.writeByte(' ');
+		buffer.writeBytes(subject.getBytes());
+		buffer.writeByte(' ');
+		buffer.writeBytes(id.getBytes());
+		buffer.writeByte(' ');
+		if (replyTo != null) {
+			buffer.writeBytes(replyTo.getBytes());
+			buffer.writeByte(' ');
+		}
+		final byte[] bodyBytes = body.getBytes();
+		ChannelBufferUtil.writeIntegerAsString(buffer, bodyBytes.length);
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+		buffer.writeBytes(bodyBytes);
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+
+		return buffer;
 	}
 }

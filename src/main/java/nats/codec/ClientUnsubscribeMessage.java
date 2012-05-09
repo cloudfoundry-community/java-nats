@@ -16,6 +16,9 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.buffer.ChannelBuffers;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
@@ -45,13 +48,16 @@ public class ClientUnsubscribeMessage implements ClientMessage, ClientRequest {
 	}
 
 	@Override
-	public String encode() {
-		StringBuilder builder = new StringBuilder();
-		builder.append(CMD_UNSUBSCRIBE).append(' ').append(id);
+	public ChannelBuffer encode() {
+		final ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+		buffer.writeBytes(CMD_UNSUBSCRIBE.getBytes());
+		buffer.writeByte(' ');
+		buffer.writeBytes(id.getBytes());
 		if (maxMessages != null) {
-			builder.append(' ').append(maxMessages);
+			buffer.writeByte(' ');
+			ChannelBufferUtil.writeIntegerAsString(buffer, maxMessages);
 		}
-		builder.append("\r\n");
-		return builder.toString();
+		buffer.writeBytes(ChannelBufferUtil.CRLF);
+		return buffer;
 	}
 }

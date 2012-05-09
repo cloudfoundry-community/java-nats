@@ -16,14 +16,17 @@
  */
 package nats.codec;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 class AbstractPing {
 
 	public static final String CMD_PING = "PING";
+	private static final ChannelBuffer PING_BUFFER = ChannelBufferUtil.wrappedBuffer(CMD_PING + "\r\n");
 
-	public String encode() {
-		return CMD_PING + "\r\n";
+	public ChannelBuffer encode() {
+		return PING_BUFFER.duplicate();
 	}
 }
