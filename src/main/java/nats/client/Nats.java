@@ -112,7 +112,6 @@ public class Nats implements Closeable {
 	private final int maxReconnectAttempts;
 	private final long reconnectTimeWait;
 	private final boolean pedantic;
-	private final boolean verbose;
 
 	private final ExceptionHandler exceptionHandler;
 	private final NatsLogger logger;
@@ -167,7 +166,6 @@ public class Nats implements Closeable {
 		private int maxReconnectAttempts = Constants.DEFAULT_MAX_RECONNECT_ATTEMPTS;
 		private long reconnectWaitTime = Constants.DEFAULT_RECONNECT_TIME_WAIT;
 		private boolean pedantic = false;
-		private boolean verbose = false;
 		private ChannelFactory channelFactory;
 		private NatsLogger logger;
 		private ExceptionHandler exceptionHandler;
@@ -259,18 +257,7 @@ public class Nats implements Closeable {
 		}
 
 		/**
-		 * I have no idea what this is used for but both the Ruby and Node clients have it.
-		 * 
-		 * @param verbose
-		 * @return this {@code Builder} instance.
-		 */
-		public Builder verbose(boolean verbose) {
-			this.verbose = verbose;
-			return this;
-		}
-
-		/**
-		 * I have no idea what this is used for but both the Ruby and Node clients have it.
+		 * Indicates whether the server should do extra checking, mostly around properly formed subjects.
 		 * 
 		 * @param pedantic
 		 * @return this {@code Builder} instance.
@@ -297,7 +284,7 @@ public class Nats implements Closeable {
 		}
 
 		/**
-		 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1 megabyte.
+		 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1MB.
 		 *
 		 * @param maxMessageSize the maximum message size that can be received by the {@code} Nats instance.
 		 * @return this {@code Builder} instance.
@@ -362,7 +349,6 @@ public class Nats implements Closeable {
 		maxReconnectAttempts = builder.maxReconnectAttempts;
 		reconnectTimeWait = builder.reconnectWaitTime;
 		pedantic = builder.pedantic;
-		verbose = builder.verbose;
 
 		// Start connection to server
 		connect();
@@ -405,7 +391,7 @@ public class Nats implements Closeable {
 							writeSubscription(subscription);
 						}
 					}
-					// Resent pending publish commands.
+					// Resend pending publish commands.
 					synchronized (publishQueue) {
 						for (Publish publish : publishQueue) {
 							ctx.getChannel().write(publish);
@@ -455,6 +441,7 @@ public class Nats implements Closeable {
 			}
 
 			@Override
+			@SuppressWarnings("ThrowableResultOfMethodCallIgnored")
 			public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
 				Throwable t = e.getCause();
 				if (t instanceof TooLongFrameException || t instanceof NatsDecodingException) {
@@ -506,7 +493,7 @@ public class Nats implements Closeable {
 				// If connection is successful, set connection attempts to 0, otherwise increase connection attempts.
 				if (future.isSuccess()) {
 					finalServer.resetConnectionAttempts();
-					channel.write(new ClientConnectMessage(new ConnectBody(finalServer.user, finalServer.password, pedantic, verbose)));
+					channel.write(new ClientConnectMessage(new ConnectBody(finalServer.user, finalServer.password, pedantic, true)));
 				} else {
 					finalServer.incConnectionAttempts();
 				}

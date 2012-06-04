@@ -62,13 +62,14 @@ public abstract class AbstractClientChannelHandler extends SimpleChannelHandler 
 
 	@Override
 	public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-		if (e.getMessage() instanceof ClientPingMessage) {
+		final Object message = e.getMessage();
+		if (message instanceof ClientPingMessage) {
 			synchronized (pingQueue) {
-				pingQueue.add((ClientPingMessage) e.getMessage());
+				pingQueue.add((ClientPingMessage) message);
 			}
-		} else if (e.getMessage() instanceof ClientRequest) {
+		} else if (message instanceof ClientRequest) {
 			synchronized (requestQueue) {
-				requestQueue.add((ClientRequest) e.getMessage());
+				requestQueue.add((ClientRequest) message);
 			}
 		}
 		super.writeRequested(ctx, e);

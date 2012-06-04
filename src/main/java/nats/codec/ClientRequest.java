@@ -17,6 +17,8 @@
 package nats.codec;
 
 /**
+ * Indicates that this client message will acked with an +OK or -ERR response.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface ClientRequest {
