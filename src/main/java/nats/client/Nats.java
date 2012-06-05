@@ -37,7 +37,9 @@ import nats.codec.ServerInfoMessage;
 import nats.codec.ServerOkMessage;
 import nats.codec.ServerPongMessage;
 import nats.codec.ServerPublishMessage;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.channel.ChannelEvent;
 import org.jboss.netty.channel.ChannelFactory;
 import org.jboss.netty.channel.ChannelFuture;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -46,6 +48,7 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelStateEvent;
 import org.jboss.netty.channel.ExceptionEvent;
 import org.jboss.netty.channel.MessageEvent;
+import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
 import org.jboss.netty.util.HashedWheelTimer;
@@ -105,7 +108,7 @@ public class Nats implements Closeable {
 	/**
 	 * The {@link Timer} used for scheduling server reconnects and scheduling delayed message publishing.
 	 */
-	private final Timer timer = new HashedWheelTimer();
+	private final Timer timer = new HashedWheelTimer(50, TimeUnit.MILLISECONDS);
 
 	// Configuration values
 	private final boolean automaticReconnect;
@@ -278,7 +281,7 @@ public class Nats implements Closeable {
 			return this;
 		}
 
-		public Builder callback(ExceptionHandler exceptionHandler) {
+		public Builder exceptionHandler(ExceptionHandler exceptionHandler) {
 			this.exceptionHandler = exceptionHandler;
 			return this;
 		}
@@ -356,6 +359,26 @@ public class Nats implements Closeable {
 
 	private Channel createChannel(ChannelFactory channelFactory) {
 		final ChannelPipeline pipeline = clientChannelPipelineFactory.getPipeline();
+		// TODO Make configurable
+		pipeline.addFirst("debugger", new SimpleChannelHandler() {
+			@Override
+			public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+				if (e instanceof MessageEvent) {
+					final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
+					System.out.println("OUTGOING: " + message.toString("UTF8"));
+				}
+				super.handleDownstream(ctx, e);
+			}
+
+			@Override
+			public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+				if (e instanceof MessageEvent) {
+					final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
+					System.out.println("INCOMING: " + message.toString("UTF8"));
+				}
+				super.handleUpstream(ctx, e);
+			}
+		});
 		pipeline.addLast("handler", new AbstractClientChannelHandler() {
 			@Override
 			public void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message) {
