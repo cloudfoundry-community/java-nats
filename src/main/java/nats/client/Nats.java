@@ -160,6 +160,8 @@ public class Nats implements Closeable {
 
 	private final NatsConnectionStatus connectionStatus = new NatsConnectionStatus();
 
+	private final boolean debug;
+
 	/**
 	 * Class used for configuring and creating {@link Nats} instances.
 	 */
@@ -173,6 +175,7 @@ public class Nats implements Closeable {
 		private NatsLogger logger;
 		private ExceptionHandler exceptionHandler;
 		private int maxMessageSize = Constants.DEFAULT_MAX_MESSAGE_SIZE;
+		private boolean debug = false;
 
 		/**
 		 * Creates the {@code Nats} instance and asynchronously connects to the first Nats server provided using the
@@ -296,6 +299,11 @@ public class Nats implements Closeable {
 			this.maxMessageSize = maxMessageSize;
 			return this;
 		}
+
+		public Builder debug(boolean debug) {
+			this.debug = debug;
+			return this;
+		}
 	}
 
 	private static final Random random = new Random();
@@ -315,9 +323,14 @@ public class Nats implements Closeable {
 	}
 
 	private Nats(Builder builder) {
+		debug = builder.debug;
 		// Create a default logger if one is not provided.
 		if (builder.logger == null) {
-			this.logger = NatsLogger.DEFAULT_LOGGER;
+			if (debug) {
+				this.logger = NatsLogger.DEBUG_LOGGER;
+			} else {
+				this.logger = NatsLogger.DEFAULT_LOGGER;
+			}
 		} else {
 			this.logger = builder.logger;
 		}
@@ -359,26 +372,27 @@ public class Nats implements Closeable {
 
 	private Channel createChannel(ChannelFactory channelFactory) {
 		final ChannelPipeline pipeline = clientChannelPipelineFactory.getPipeline();
-		// TODO Make configurable
-		pipeline.addFirst("debugger", new SimpleChannelHandler() {
-			@Override
-			public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-				if (e instanceof MessageEvent) {
-					final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
-					System.out.println("OUTGOING: " + message.toString("UTF8"));
+		if (debug) {
+			pipeline.addFirst("debugger", new SimpleChannelHandler() {
+				@Override
+				public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+					if (e instanceof MessageEvent) {
+						final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
+						System.out.println("OUTGOING: " + new String(message.array()));
+					}
+					super.handleDownstream(ctx, e);
 				}
-				super.handleDownstream(ctx, e);
-			}
 
-			@Override
-			public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-				if (e instanceof MessageEvent) {
-					final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
-					System.out.println("INCOMING: " + message.toString("UTF8"));
+				@Override
+				public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
+					if (e instanceof MessageEvent) {
+						final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
+						System.out.println("INCOMING: " + new String(message.array()));
+					}
+					super.handleUpstream(ctx, e);
 				}
-				super.handleUpstream(ctx, e);
-			}
-		});
+			});
+		}
 		pipeline.addLast("handler", new AbstractClientChannelHandler() {
 			@Override
 			public void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message) {

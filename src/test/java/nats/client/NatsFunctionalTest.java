@@ -151,7 +151,7 @@ public class NatsFunctionalTest {
 	}
 
 	protected void runNatsTest(NatsTestCase testCase) throws Exception {
-		final Nats nats = new Nats.Builder().addHost(natsServer.getUri()).connect();
+		final Nats nats = new Nats.Builder().addHost(natsServer.getUri()).debug(true).connect();
 		Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(5, TimeUnit.SECONDS), "Did not connect to NATS server.");
 		Assert.assertTrue(nats.getConnectionStatus().isConnected());
 		try {
