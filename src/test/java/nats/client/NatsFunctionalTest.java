@@ -5,6 +5,11 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -92,20 +97,12 @@ public class NatsFunctionalTest {
 				nats.subscribe(subject).addMessageHandler(new MessageHandler() {
 					@Override
 					public void onMessage(Message message) {
-						// There's a simple race condition where request gets sent and the reply is received before the
-						// message handler gets added to the request. So we need add a sleep.
-						// TODO Fix the API to handle this race condition
-						try {
-							Thread.sleep(50);
-						} catch (InterruptedException e) {
-							throw new RuntimeException(e);
-						}
 						System.out.println("Received request: " + message);
 						System.out.println("sending response");
 						message.reply("Response");
 					}
 				});
-				nats.request(subject, "Request").addMessageHandler(new MessageHandler() {
+				nats.request(subject, new MessageHandler() {
 					@Override
 					public void onMessage(Message message) {
 						System.out.println("Received request response: " + message);
@@ -146,6 +143,23 @@ public class NatsFunctionalTest {
 				nats.publish(subject, "Third message").await();
 				Assert.assertTrue(latch.await(5, TimeUnit.SECONDS), "Messages were not received on second subscription.");
 				Assert.assertEquals(subscription.getReceivedMessages(), 1, "The subscription didn't actually shut down, more than one message arrived.");
+			}
+		});
+	}
+
+	@Test
+	public void subscriptionEncoding() throws Exception {
+		runNatsTest(new NatsTestCase() {
+			@Override
+			public void natsTest(Nats nats) throws Exception {
+				final String testString = "\uD834\uDD1E";
+				final String subject = "test";
+				final SubscriptionIterator iterator = nats.subscribe(subject).iterator();
+				final Process process = new ProcessBuilder("nats-pub", "-s", natsServer.getUri(), subject, testString).start();
+				Assert.assertEquals(process.waitFor(), 0, "Pub failed");
+				final Message message = iterator.next(5, TimeUnit.SECONDS);
+				Assert.assertNotNull(message, "Did not receive a message from server.");
+				Assert.assertEquals(message.getBody(), testString);
 			}
 		});
 	}

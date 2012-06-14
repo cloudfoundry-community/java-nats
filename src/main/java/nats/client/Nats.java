@@ -621,12 +621,12 @@ public class Nats implements Closeable {
 		assertNatsOpen();
 
 		DefaultPublishFuture future = new DefaultPublishFuture(subject, message, replyTo, exceptionHandler);
-		publish(subject, message, replyTo, future);
+		publish(future);
 		return future;
 	}
 
-	private void publish(String subject, String message, String replyTo, DefaultPublishFuture future) {
-		Publish publishMessage = new Publish(subject, message, replyTo, future);
+	private void publish(DefaultPublishFuture future) {
+		Publish publishMessage = new Publish(future);
 		synchronized (publishQueue) {
 			if (connectionStatus.isServerReady()) {
 				channel.write(publishMessage);
@@ -811,7 +811,7 @@ public class Nats implements Closeable {
 						timer.newTimeout(new TimerTaskFuture() {
 							@Override
 							public void run(Timeout timeout) {
-								publish(replyTo, message, null, future);
+								publish(future);
 							}
 
 							@Override
@@ -881,25 +881,29 @@ public class Nats implements Closeable {
 	 * Sends a request on the given subject with an empty message. Request responses can be handled using the returned
 	 * {@link RequestFuture}.
 	 *
-	 * @see #request(String, String, Integer)
+	 * @see #request(String, String, Integer, MessageHandler...)
 	 * @param subject the subject to send the request on
-	 * @return
+	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
+	 *                        attached to the requests future, so you can optionally add a message handler here.
+	 * @return a {@code RequestFuture} instance associated with the request.
 	 */
-	public RequestFuture request(String subject) {
-		return request(subject, "", null);
+	public RequestFuture request(String subject, MessageHandler... messageHandlers) {
+		return request(subject, "", null, messageHandlers);
 	}
 
 	/**
 	 * Sends a request message on the given subject. Request responses can be handled using the returned
 	 * {@link RequestFuture}.
 	 * 
-	 * @see #request(String, String, Integer)
+	 * @see #request(String, String, Integer, MessageHandler...)
 	 * @param subject the subject to send the request on
 	 * @param message the content of the request
-	 * @return
+	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
+	 *                        attached to the requests future, so you can optionally add a message handler here.
+	 * @return a {@code RequestFuture} instance associated with the request.
 	 */
-	public RequestFuture request(String subject, String message) {
-		return request(subject, message, null);
+	public RequestFuture request(String subject, String message, MessageHandler... messageHandlers) {
+		return request(subject, message, null, messageHandlers);
 	}
 
 	/**
@@ -920,13 +924,19 @@ public class Nats implements Closeable {
 	 * @param message the content of the request
 	 * @param maxReplies the maximum number of replies that the request will accept before automatically closing,
 	 *                   {@code null} for unlimited replies
-	 * @return
+	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
+	 *                        attached to the requests future, so you can optionally add a message handler here.
+	 * @return a {@code RequestFuture} instance associated with the request.
 	 */
-	public RequestFuture request(String subject, final String message, final Integer maxReplies) {
+	public RequestFuture request(String subject, String message, Integer maxReplies, MessageHandler... messageHandlers) {
 		assertNatsOpen();
 		final String inbox = createInbox();
 		final Subscription subscription = subscribe(inbox, maxReplies);
-		final PublishFuture publishFuture = publish(subject, message, inbox);
+		for (MessageHandler handler : messageHandlers) {
+			subscription.addMessageHandler(handler);
+		}
+		final DefaultPublishFuture publishFuture = new DefaultPublishFuture(subject, message, inbox, exceptionHandler);
+		publish(publishFuture);
 		return new DefaultRequestFuture(subscription, publishFuture);
 	}
 
@@ -1010,8 +1020,8 @@ public class Nats implements Closeable {
 	private static class Publish extends ClientPublishMessage implements HasFuture {
 		private final DefaultPublishFuture future;
 
-		public Publish(String subject, String message, String replyTo, DefaultPublishFuture future) {
-			super(subject, message, replyTo);
+		public Publish(DefaultPublishFuture future) {
+			super(future.getSubject(), future.getMessage(), future.getReplyTo());
 			this.future = future;
 		}
 
