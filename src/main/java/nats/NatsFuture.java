@@ -19,14 +19,13 @@ package nats;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Represents a pending Nats operation, typically a publish request. Most operations in Nats are asynchronous meaning
- * that most method invocations will return immediately regardless of whether the operation has completed or not.
- * Instances of this class can be used to track these pending operations and determine if they complete successfully or
- * not.
+ * Represents a pending Nats operation. Most operations in Nats are asynchronous meaning that method invocations will
+ * return immediately regardless of whether the operation has completed or not. Instances of this class can be used to
+ * track these pending operations and determine if they have completed successfully.
  * 
  * <p>{@link #addCompletionHandler(CompletionHandler)}</p> can be used to get notified when the pending operation has
  * completed. Alternatively, {@link #await()} or {@link #await(long, java.util.concurrent.TimeUnit)} can be used to
- * block the current thread's execution until the future completes.
+ * block the current thread's execution until the operation completes.
  * 
  * @author Mike Heath <elcapo@gmail.com>
  */
