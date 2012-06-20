@@ -18,10 +18,9 @@ package nats.client;
 
 import nats.HandlerRegistration;
 import nats.NatsInterruptedException;
-import org.jboss.netty.util.Timeout;
-import org.jboss.netty.util.Timer;
-import org.jboss.netty.util.TimerTask;
 
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -32,13 +31,14 @@ class DefaultSubscriptionTimeout implements SubscriptionTimeout {
 	private final Object monitor = new Object();
 	private final HandlerRegistrar<TimeoutHandler> registrar = new HandlerRegistrar<TimeoutHandler>();
 	private final Subscription subscription;
-	private final Timeout timeout;
+	private final ScheduledFuture<?> timeout;
 
-	DefaultSubscriptionTimeout(Timer timer, final Subscription subscription, final ExceptionHandler exceptionHandler, long time, TimeUnit unit) {
+	DefaultSubscriptionTimeout(ScheduledExecutorService scheduledExecutorService, final Subscription subscription, final ExceptionHandler exceptionHandler, long time, TimeUnit unit) {
 		this.subscription = subscription;
-		timeout = timer.newTimeout(new TimerTask() {
+		timeout = scheduledExecutorService.schedule(new Runnable() {
 			@Override
-			public void run(Timeout timeout) throws Exception {
+			@SuppressWarnings("ConstantConditions")
+			public void run() {
 				subscription.close();
 				for (TimeoutHandler handler : registrar) {
 					try {
@@ -67,7 +67,7 @@ class DefaultSubscriptionTimeout implements SubscriptionTimeout {
 
 	@Override
 	public boolean cancel() {
-		timeout.cancel();
+		timeout.cancel(false);
 		if (timeout.isCancelled()) {
 			synchronized (monitor) {
 				monitor.notifyAll();
