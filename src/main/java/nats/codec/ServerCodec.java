@@ -107,7 +107,7 @@ public class ServerCodec  extends AbstractCodec implements ChannelDownstreamHand
 	public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
 		if (e instanceof MessageEvent) {
 			MessageEvent messageEvent = (MessageEvent) e;
-			if (messageEvent.getMessage() instanceof ClientMessage) {
+			if (messageEvent.getMessage() instanceof ServerMessage) {
 				ServerMessage message = (ServerMessage) messageEvent.getMessage();
 				final ChannelBuffer buffer = message.encode();
 				Channels.write(ctx, e.getFuture(), buffer, messageEvent.getRemoteAddress());
