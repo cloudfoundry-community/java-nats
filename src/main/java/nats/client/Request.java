@@ -22,5 +22,5 @@ package nats.client;
  * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface RequestFuture extends PublishFuture, Subscription {
+public interface Request extends PublishFuture, Subscription {
 }

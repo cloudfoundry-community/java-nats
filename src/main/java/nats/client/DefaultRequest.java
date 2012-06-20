@@ -24,12 +24,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-class DefaultRequestFuture implements RequestFuture {
+class DefaultRequest implements Request {
 
 	private final PublishFuture publishFuture;
 	private final Subscription subscription;
 
-	DefaultRequestFuture(Subscription subscription, PublishFuture publishFuture) {
+	DefaultRequest(Subscription subscription, PublishFuture publishFuture) {
 		this.subscription = subscription;
 		this.publishFuture = publishFuture;
 	}
