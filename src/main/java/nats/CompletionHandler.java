@@ -21,7 +21,7 @@ package nats;
  * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface CompletionHandler {
+public interface CompletionHandler<T extends NatsFuture> {
 
 	/**
 	 * This method gets invoked when the operation represented by a {@link nats.NatsFuture} completes regardless of whether
@@ -29,5 +29,5 @@ public interface CompletionHandler {
 	 *
 	 * @param future the future object that completed
 	 */
-	void onComplete(NatsFuture future);
+	void onComplete(T future);
 }

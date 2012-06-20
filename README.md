@@ -113,10 +113,10 @@ nats.subscribe(subject, "job.workers").addMessageListener(...);
 ## Advanced Usage
 
 ```java
-// Publish with a callback invoked when publish is sent to server
-nats.publish("foo", "message").addCompletionHandler(new CompletionHandler() {
+// Publish with a callback invoked when publish has been acknowledged by server.
+nats.publish("foo", "message").addCompletionHandler(new CompletionHandler<Publication>() {
     @Override
-    public void onComplete(NatsFuture future) {
+    public void onComplete(Publication publication) {
         System.out.println("Published message!");
     }
 });

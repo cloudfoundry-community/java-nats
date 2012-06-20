@@ -17,10 +17,10 @@
 package nats.client;
 
 /**
- * Provides a combinations of a {@link nats.client.PublishFuture} and {@link Subscription} used when invoking a
+ * Provides a combinations of a {@link Publication} and {@link Subscription} used when invoking a
  * {@link Nats#request(String, String, Integer)}.
  * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface Request extends PublishFuture, Subscription {
+public interface Request extends Publication, Subscription {
 }

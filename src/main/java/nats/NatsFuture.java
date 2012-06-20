@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * 
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface NatsFuture {
+public interface NatsFuture<H extends CompletionHandler<?>> {
 
 	/**
 	 * Adds the specified handler to this future.  The specified handler is invoked when this future has completed,
@@ -38,7 +38,7 @@ public interface NatsFuture {
 	 * @param handler the handler to invoke when this future object has completed
 	 * @return a handler registration
 	 */
-	HandlerRegistration addCompletionHandler(CompletionHandler handler);
+	HandlerRegistration addCompletionHandler(H handler);
 
 	/**
 	 * Returns {@code true} if and only if the pending operation is complete, regardless of whether the operation

@@ -19,7 +19,6 @@ package nats.client;
 import nats.Constants;
 import nats.HandlerRegistration;
 import nats.NatsException;
-import nats.NatsFuture;
 import nats.NatsLogger;
 import nats.NatsServerException;
 import nats.codec.AbstractClientChannelHandler;
@@ -418,7 +417,7 @@ public class Nats implements Closeable {
 
 			@Override
 			public void okResponse(ChannelHandlerContext ctx, ClientRequest request, ServerOkMessage okMessage) {
-				setRequestFutureDone(request, null);
+				completePublication(request, null);
 				// Indicates we've successfully connected to a Nats server
 				if (request instanceof ClientConnectMessage) {
 					connectionStatus.setServerReady(true);
@@ -445,7 +444,7 @@ public class Nats implements Closeable {
 					message.append(": ").append(errorText);
 				}
 				final NatsServerException exception = new NatsServerException(message.toString());
-				setRequestFutureDone(request, exception);
+				completePublication(request, exception);
 				throw exception;
 			}
 
@@ -458,7 +457,7 @@ public class Nats implements Closeable {
 			protected void handleOrphanedRequests(ChannelHandlerContext ctx, Collection<ClientRequest> requests) {
 				final NatsClosedException closedException = new NatsClosedException();
 				for (ClientRequest request : requests) {
-					setRequestFutureDone(request, closedException);
+					completePublication(request, closedException);
 				}
 			}
 
@@ -496,9 +495,9 @@ public class Nats implements Closeable {
 		return channelFactory.newChannel(pipeline);
 	}
 
-	private void setRequestFutureDone(ClientRequest request, Throwable cause) {
-		if (request instanceof HasFuture) {
-			((HasFuture)request).getFuture().setDone(cause);
+	private void completePublication(ClientRequest request, Throwable cause) {
+		if (request instanceof HasPublication) {
+			((HasPublication)request).getPublication().setDone(cause);
 		}
 	}
 
@@ -567,8 +566,8 @@ public class Nats implements Closeable {
 		final Set<Timeout> timeouts = timer.stop();
 		for (Timeout timeout : timeouts) {
 			final TimerTask task = timeout.getTask();
-			if (task instanceof HasFuture) {
-				((HasFuture)task).getFuture().setDone(closedException);
+			if (task instanceof HasPublication) {
+				((HasPublication)task).getPublication().setDone(closedException);
 			}
 		}
 		synchronized (subscriptions) {
@@ -580,7 +579,7 @@ public class Nats implements Closeable {
 		}
 		synchronized (publishQueue) {
 			for (Publish publish : publishQueue) {
-				publish.future.setDone(closedException);
+				publish.publication.setDone(closedException);
 			}
 		}
 	}
@@ -590,9 +589,9 @@ public class Nats implements Closeable {
 	 * a Nats server, the message will be queued up to be published once a connection is established.
 	 *
 	 * @param subject the subject to publish to
-	 * @return a {@code NatsFuture} object representing the pending publish.
+	 * @return a {@code Publication} object representing the pending publish operation.
 	 */
-	public PublishFuture publish(String subject) {
+	public Publication publish(String subject) {
 		return publish(subject, "", null);
 	}
 
@@ -602,9 +601,9 @@ public class Nats implements Closeable {
 	 *
 	 * @param subject the subject to publish to
 	 * @param message the message to publish
-	 * @return a {@code NatsFuture} object representing the pending publish.
+	 * @return a {@code Publication} object representing the pending publish operation.
 	 */
-	public PublishFuture publish(String subject, String message) {
+	public Publication publish(String subject, String message) {
 		return publish(subject, message, null);
 	}
 	
@@ -615,18 +614,18 @@ public class Nats implements Closeable {
 	 * @param subject the subject to publish to
 	 * @param message the message to publish
 	 * @param replyTo the subject replies to this message should be sent to.
-	 * @return a {@code NatsFuture} object representing the pending publish.
+	 * @return a {@code Publication} object representing the pending publish operation.
 	 */
-	public PublishFuture publish(String subject, String message, String replyTo) {
+	public Publication publish(String subject, String message, String replyTo) {
 		assertNatsOpen();
 
-		DefaultPublishFuture future = new DefaultPublishFuture(subject, message, replyTo, exceptionHandler);
-		publish(future);
-		return future;
+		DefaultPublication publication = new DefaultPublication(subject, message, replyTo, exceptionHandler);
+		publish(publication);
+		return publication;
 	}
 
-	private void publish(DefaultPublishFuture future) {
-		Publish publishMessage = new Publish(future);
+	private void publish(DefaultPublication publication) {
+		Publish publishMessage = new Publish(publication);
 		synchronized (publishQueue) {
 			if (connectionStatus.isServerReady()) {
 				channel.write(publishMessage);
@@ -794,7 +793,7 @@ public class Nats implements Closeable {
 					}
 
 					@Override
-					public NatsFuture reply(String message) {
+					public Publication reply(String message) {
 						if (!hasReply) {
 							throw new NatsException("Message does not have a replyTo address to send the message to.");
 						}
@@ -803,23 +802,23 @@ public class Nats implements Closeable {
 					}
 
 					@Override
-					public PublishFuture reply(final String message, long delay, TimeUnit unit) {
+					public Publication reply(final String message, long delay, TimeUnit unit) {
 						if (!hasReply) {
 							throw new NatsException("Message does not have a replyTo address to send the message to.");
 						}
-						final DefaultPublishFuture future = new DefaultPublishFuture(replyTo, message, null, exceptionHandler);
-						timer.newTimeout(new TimerTaskFuture() {
+						final DefaultPublication publication = new DefaultPublication(replyTo, message, null, exceptionHandler);
+						timer.newTimeout(new TimerTaskPublication() {
 							@Override
 							public void run(Timeout timeout) {
-								publish(future);
+								publish(publication);
 							}
 
 							@Override
-							public DefaultPublishFuture getFuture() {
-								return future;
+							public DefaultPublication getPublication() {
+								return publication;
 							}
 						}, delay, unit);
-						return future;
+						return publication;
 					}
 
 					@Override
@@ -884,7 +883,7 @@ public class Nats implements Closeable {
 	 * @see #request(String, String, Integer, MessageHandler...)
 	 * @param subject the subject to send the request on
 	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
-	 *                        attached to the requests future, so you can optionally add a message handler here.
+	 *                        attached to the requests publication, so you can optionally add a message handler here.
 	 * @return a {@code Request} instance associated with the request.
 	 */
 	public Request request(String subject, MessageHandler... messageHandlers) {
@@ -899,7 +898,7 @@ public class Nats implements Closeable {
 	 * @param subject the subject to send the request on
 	 * @param message the content of the request
 	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
-	 *                        attached to the requests future, so you can optionally add a message handler here.
+	 *                        attached to the requests publication, so you can optionally add a message handler here.
 	 * @return a {@code Request} instance associated with the request.
 	 */
 	public Request request(String subject, String message, MessageHandler... messageHandlers) {
@@ -915,17 +914,17 @@ public class Nats implements Closeable {
 	 * <code>
 	 *     String replyTo = Nats.createInbox();
 	 *     Subscription subscription = nats.subscribe(replyTo, maxReplies);
-	 *     NatsFuture publishFuture = nats.publish(subject, message, replyTo);
+	 *     Publication publication = nats.publish(subject, message, replyTo);
 	 * </code>
 	 *
-	 * that returns a combination of {@code Subscription} and {@code PublishFuture} as a {@code Request} object.
+	 * that returns a combination of {@code Subscription} and {@code Publication} as a {@code Request} object.
 	 *
 	 * @param subject the subject to send the request on
 	 * @param message the content of the request
 	 * @param maxReplies the maximum number of replies that the request will accept before automatically closing,
 	 *                   {@code null} for unlimited replies
 	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
-	 *                        attached to the requests future, so you can optionally add a message handler here.
+	 *                        attached to the requests publication, so you can optionally add a message handler here.
 	 * @return a {@code Request} instance associated with the request.
 	 */
 	public Request request(String subject, String message, Integer maxReplies, MessageHandler... messageHandlers) {
@@ -935,9 +934,9 @@ public class Nats implements Closeable {
 		for (MessageHandler handler : messageHandlers) {
 			subscription.addMessageHandler(handler);
 		}
-		final DefaultPublishFuture publishFuture = new DefaultPublishFuture(subject, message, inbox, exceptionHandler);
-		publish(publishFuture);
-		return new DefaultRequest(subscription, publishFuture);
+		final DefaultPublication publication = new DefaultPublication(subject, message, inbox, exceptionHandler);
+		publish(publication);
+		return new DefaultRequest(subscription, publication);
 	}
 
 	private void assertNatsOpen() {
@@ -1011,23 +1010,23 @@ public class Nats implements Closeable {
 		String getId();
 	}
 
-	private static interface HasFuture {
-		DefaultPublishFuture getFuture();
+	private static interface HasPublication {
+		DefaultPublication getPublication();
 	}
 
-	private static interface TimerTaskFuture extends TimerTask, HasFuture {}
+	private static interface TimerTaskPublication extends TimerTask, HasPublication {}
 
-	private static class Publish extends ClientPublishMessage implements HasFuture {
-		private final DefaultPublishFuture future;
+	private static class Publish extends ClientPublishMessage implements HasPublication {
+		private final DefaultPublication publication;
 
-		public Publish(DefaultPublishFuture future) {
-			super(future.getSubject(), future.getMessage(), future.getReplyTo());
-			this.future = future;
+		public Publish(DefaultPublication publication) {
+			super(publication.getSubject(), publication.getMessage(), publication.getReplyTo());
+			this.publication = publication;
 		}
 
 		@Override
-		public DefaultPublishFuture getFuture() {
-			return future;
+		public DefaultPublication getPublication() {
+			return publication;
 		}
 	}
 

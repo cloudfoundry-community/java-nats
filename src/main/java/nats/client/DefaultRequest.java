@@ -26,57 +26,57 @@ import java.util.concurrent.TimeUnit;
  */
 class DefaultRequest implements Request {
 
-	private final PublishFuture publishFuture;
+	private final Publication publication;
 	private final Subscription subscription;
 
-	DefaultRequest(Subscription subscription, PublishFuture publishFuture) {
+	DefaultRequest(Subscription subscription, Publication publication) {
 		this.subscription = subscription;
-		this.publishFuture = publishFuture;
+		this.publication = publication;
 	}
 
 	@Override
 	public String getMessage() {
-		return publishFuture.getMessage();
+		return publication.getMessage();
 	}
 
 	@Override
 	public String getSubject() {
-		return publishFuture.getSubject();
+		return publication.getSubject();
 	}
 
 	@Override
 	public String getReplyTo() {
-		return publishFuture.getReplyTo();
+		return publication.getReplyTo();
 	}
 
 	@Override
 	public HandlerRegistration addCompletionHandler(CompletionHandler handler) {
-		return publishFuture.addCompletionHandler(handler);
+		return publication.addCompletionHandler(handler);
 	}
 
 	@Override
 	public boolean isDone() {
-		return publishFuture.isDone();
+		return publication.isDone();
 	}
 
 	@Override
 	public boolean isSuccess() {
-		return publishFuture.isSuccess();
+		return publication.isSuccess();
 	}
 
 	@Override
 	public Throwable getCause() {
-		return publishFuture.getCause();
+		return publication.getCause();
 	}
 
 	@Override
 	public void await() throws InterruptedException {
-		publishFuture.await();
+		publication.await();
 	}
 
 	@Override
 	public boolean await(long timeout, TimeUnit unit) throws InterruptedException {
-		return publishFuture.await(timeout, unit);
+		return publication.await(timeout, unit);
 	}
 
 	@Override

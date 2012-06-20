@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-class DefaultPublishFuture implements PublishFuture {
+class DefaultPublication implements Publication {
 
 	private final String subject;
 	private final String message;
@@ -38,7 +38,7 @@ class DefaultPublishFuture implements PublishFuture {
 
 	private final ExceptionHandler exceptionHandler;
 
-	public DefaultPublishFuture(String subject, String message, String replyTo, ExceptionHandler exceptionHandler) {
+	public DefaultPublication(String subject, String message, String replyTo, ExceptionHandler exceptionHandler) {
 		this.subject = subject;
 		this.message = message;
 		this.replyTo = replyTo;

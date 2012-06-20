@@ -16,7 +16,6 @@
  */
 package nats.client;
 
-import nats.NatsFuture;
 import nats.NatsInterruptedException;
 
 import java.util.concurrent.BlockingQueue;
@@ -52,12 +51,12 @@ class BlockingQueueSubscriptionIterator implements SubscriptionIterator {
 		}
 
 		@Override
-		public NatsFuture reply(String message) {
+		public Publication reply(String message) {
 			return null;
 		}
 
 		@Override
-		public NatsFuture reply(String message, long delay, TimeUnit unit) {
+		public Publication reply(String message, long delay, TimeUnit unit) {
 			return null;
 		}
 	};

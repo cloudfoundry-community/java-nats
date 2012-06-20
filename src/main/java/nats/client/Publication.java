@@ -16,17 +16,35 @@
  */
 package nats.client;
 
+import nats.CompletionHandler;
+import nats.HandlerRegistration;
 import nats.NatsFuture;
 
 /**
+ * Represents a pending publish operation.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface PublishFuture extends NatsFuture {
+public interface Publication extends NatsFuture<CompletionHandler<Publication>> {
 
+	/**
+	 * Returns the destination subject.
+	 *
+	 * @return the destination subject.
+	 */
 	String getSubject();
 
+	/**
+	 * Returns the message being published.
+	 *
+	 * @return the message being published.
+	 */
 	String getMessage();
 
+	/**
+	 * Returns the subject replies should be sent to.
+	 *
+	 * @return the subject replies should be sent to.
+	 */
 	String getReplyTo();
-
 }
