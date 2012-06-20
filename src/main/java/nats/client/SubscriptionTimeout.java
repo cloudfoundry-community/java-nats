@@ -18,8 +18,6 @@ package nats.client;
 
 import nats.HandlerRegistration;
 
-import java.util.concurrent.TimeUnit;
-
 /**
  * Represents a subscription timeout. Can be used to wait for the subscription to timeout or register a callback when
  * the subscription times out.
