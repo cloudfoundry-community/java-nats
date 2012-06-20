@@ -20,4 +20,5 @@ package nats.codec;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ServerPongMessage extends AbstractPong implements ServerMessage {
+	public static ServerPongMessage SERVER_PONG_MESSAGE = new ServerPongMessage();
 }
