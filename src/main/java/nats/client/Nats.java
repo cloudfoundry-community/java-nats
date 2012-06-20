@@ -50,10 +50,7 @@ import org.jboss.netty.channel.MessageEvent;
 import org.jboss.netty.channel.SimpleChannelHandler;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.TooLongFrameException;
-import org.jboss.netty.util.HashedWheelTimer;
-import org.jboss.netty.util.Timeout;
 import org.jboss.netty.util.Timer;
-import org.jboss.netty.util.TimerTask;
 
 import java.io.Closeable;
 import java.math.BigInteger;
@@ -69,8 +66,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
-import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -107,7 +104,7 @@ public class Nats implements Closeable {
 	/**
 	 * The {@link Timer} used for scheduling server reconnects and scheduling delayed message publishing.
 	 */
-	private final Timer timer = new HashedWheelTimer(50, TimeUnit.MILLISECONDS);
+	private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
 	// Configuration values
 	private final boolean automaticReconnect;
@@ -467,9 +464,9 @@ public class Nats implements Closeable {
 				super.channelClosed(ctx, e);
 				connectionStatus.channelClosed();
 				if (automaticReconnect) {
-					timer.newTimeout(new TimerTask() {
+					scheduledExecutorService.schedule(new Runnable() {
 						@Override
-						public void run(Timeout timeout) {
+						public void run() {
 							connect();
 						}
 					}, reconnectTimeWait, TimeUnit.MILLISECONDS);
@@ -562,10 +559,9 @@ public class Nats implements Closeable {
 		if (createdChannelFactory) {
 			channelFactory.releaseExternalResources();
 		}
-		NatsClosedException closedException = new NatsClosedException();
-		final Set<Timeout> timeouts = timer.stop();
-		for (Timeout timeout : timeouts) {
-			final TimerTask task = timeout.getTask();
+		final NatsClosedException closedException = new NatsClosedException();
+		final List<Runnable> pendingTasks = scheduledExecutorService.shutdownNow();
+		for (Runnable task : pendingTasks) {
 			if (task instanceof HasPublication) {
 				((HasPublication)task).getPublication().setDone(closedException);
 			}
@@ -764,6 +760,7 @@ public class Nats implements Closeable {
 				return queueGroup;
 			}
 			@Override
+			@SuppressWarnings("ConstantConditions")
 			public void onMessage(final String subject, final String body, final String replyTo) {
 				final int messageCount = receivedMessages.incrementAndGet();
 				if (maxMessages != null && messageCount >= maxMessages) {
@@ -807,9 +804,9 @@ public class Nats implements Closeable {
 							throw new NatsException("Message does not have a replyTo address to send the message to.");
 						}
 						final DefaultPublication publication = new DefaultPublication(replyTo, message, null, exceptionHandler);
-						timer.newTimeout(new TimerTaskPublication() {
+						scheduledExecutorService.schedule(new ScheduledPublication() {
 							@Override
-							public void run(Timeout timeout) {
+							public void run() {
 								publish(publication);
 							}
 
@@ -854,7 +851,7 @@ public class Nats implements Closeable {
 
 			@Override
 			public SubscriptionTimeout timeout(long time, TimeUnit unit) {
-				return new DefaultSubscriptionTimeout(timer, this, exceptionHandler, time, unit);
+				return new DefaultSubscriptionTimeout(scheduledExecutorService, this, exceptionHandler, time, unit);
 			}
 
 			@Override
@@ -872,7 +869,7 @@ public class Nats implements Closeable {
 
 	private void writeSubscription(NatsSubscription subscription) {
 		if (connectionStatus.isServerReady()) {
-			channel.write(new ClientSubscribeMessage(subscription.getId().toString(), subscription.getSubject(), subscription.getQueueGroup()));
+			channel.write(new ClientSubscribeMessage(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
 		}
 	}
 
@@ -1014,7 +1011,7 @@ public class Nats implements Closeable {
 		DefaultPublication getPublication();
 	}
 
-	private static interface TimerTaskPublication extends TimerTask, HasPublication {}
+	private static interface ScheduledPublication extends Runnable, HasPublication {}
 
 	private static class Publish extends ClientPublishMessage implements HasPublication {
 		private final DefaultPublication publication;
