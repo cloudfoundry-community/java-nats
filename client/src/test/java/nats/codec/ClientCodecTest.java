@@ -16,7 +16,6 @@
  */
 package nats.codec;
 
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
 import org.testng.Assert;
 import org.testng.annotations.Test;

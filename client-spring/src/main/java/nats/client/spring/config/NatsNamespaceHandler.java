@@ -14,37 +14,17 @@
  *   limitations under the License.
  *
  */
-package nats.client;
+package nats.client.spring.config;
 
-import nats.CompletionHandler;
-import nats.HandlerRegistration;
-import nats.NatsFuture;
+import org.springframework.beans.factory.xml.NamespaceHandler;
+import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
 /**
- * Represents a pending publish operation.
- *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface Publication extends NatsFuture<CompletionHandler<Publication>> {
-
-	/**
-	 * Returns the destination subject.
-	 *
-	 * @return the destination subject.
-	 */
-	String getSubject();
-
-	/**
-	 * Returns the message being published.
-	 *
-	 * @return the message being published.
-	 */
-	String getMessage();
-
-	/**
-	 * Returns the subject replies should be sent to.
-	 *
-	 * @return the subject replies should be sent to.
-	 */
-	String getReplyTo();
+public class NatsNamespaceHandler extends NamespaceHandlerSupport {
+	@Override
+	public void init() {
+		registerBeanDefinitionParser("nats", new NatsBeanDefinitionParser());
+	}
 }

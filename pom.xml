@@ -12,17 +12,56 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.github.jnats</groupId>
-	<artifactId>nats-client</artifactId>
+	<artifactId>nats</artifactId>
 	<version>0.3-SNAPSHOT</version>
+	<packaging>pom</packaging>
 
 	<name>Java NATS</name>
-	<description>A Java NATS client.</description>
+	<description>Java support for NATS.</description>
 	<url>https://github.com/mheath/jnats</url>
 
 	<properties>
+		<jackson.version>1.9.7</jackson.version>
 		<netty.version>3.4.6.Final</netty.version>
+		<spring.version>3.1.1.RELEASE</spring.version>
 		<testng.version>6.3.1</testng.version>
 	</properties>
+
+	<modules>
+		<module>client</module>
+		<module>client-spring</module>
+	</modules>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty</artifactId>
+				<version>${netty.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.codehaus.jackson</groupId>
+				<artifactId>jackson-mapper-asl</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.testng</groupId>
+				<artifactId>testng</artifactId>
+				<version>${testng.version}</version>
+				<scope>test</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-context</artifactId>
+				<version>${spring.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.jnats</groupId>
+				<artifactId>nats-client</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<licenses>
 		<license>
@@ -43,37 +82,5 @@
 			<email>elcapo@gmail.com</email>
 		</developer>
 	</developers>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-
-	<dependencies>
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty</artifactId>
-			<version>${netty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
-			<version>1.9.7</version>
-		</dependency>
-		<dependency>
-			<groupId>org.testng</groupId>
-			<artifactId>testng</artifactId>
-			<version>${testng.version}</version>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
 
 </project>
