@@ -17,6 +17,7 @@
 package nats.client.spring.config;
 
 import nats.client.spring.NatsFactoryBean;
+import nats.client.spring.SubscriptionConfig;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -42,11 +43,17 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 	static final String ATTRIBUTE_MAX_RECONNECT_ATTEMPTS = "max-reconnect-attempts";
 	static final String ATTRIBUTE_RECONNECT_WAIT_TIME = "reconnect-wait-time";
 	static final String ELEMENT_HOST = "host";
+	static final String ELEMENT_SUBSCRIPTION = "subscription";
+	static final String ATTRIBUTE_SUBJECT = "subject";
+	static final String ATTRIBUTE_REF = "ref";
+	static final String ATTRIBUTE_METHOD = "method";
+	static final String ATTRIBUTE_QUEUE_GROUP = "queue-group";
 
 	@Override
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
 		final BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(NatsFactoryBean.class);
 
+		// Parse list of hosts
 		final List<String> uris = new ManagedList<String>();
 		final List<Element> hosts = DomUtils.getChildElementsByTagName(element, ELEMENT_HOST);
 		for (Element host : hosts) {
@@ -54,6 +61,20 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 		}
 		builder.addPropertyValue("hostUris", uris);
 
+		// Parse list of subscriptions
+		final List<BeanDefinition> subscriptions = new ManagedList<BeanDefinition>();
+		final List<Element> subscriptionElements = DomUtils.getChildElementsByTagName(element, ELEMENT_SUBSCRIPTION);
+		for (Element subscriptionElement : subscriptionElements) {
+			final BeanDefinitionBuilder subscriptionBuilder = BeanDefinitionBuilder.genericBeanDefinition(SubscriptionConfig.class);
+			subscriptionBuilder.addConstructorArgValue(subscriptionElement.getAttribute(ATTRIBUTE_SUBJECT));
+			subscriptionBuilder.addConstructorArgReference(subscriptionElement.getAttribute(ATTRIBUTE_REF));
+			subscriptionBuilder.addConstructorArgValue(subscriptionElement.getAttribute(ATTRIBUTE_METHOD));
+			subscriptionBuilder.addConstructorArgValue(subscriptionElement.getAttribute(ATTRIBUTE_QUEUE_GROUP));
+			subscriptions.add(subscriptionBuilder.getBeanDefinition());
+		}
+		builder.addPropertyValue("subscriptions", subscriptions);
+
+		// Parse attributes
 		builder.addPropertyValue("autoReconnect", element.getAttribute(ATTRIBUTE_AUTO_RECONNECT));
 		builder.addPropertyValue("maxReconnectAttempts", element.getAttribute(ATTRIBUTE_MAX_RECONNECT_ATTEMPTS));
 		builder.addPropertyValue("reconnectWaitTime", element.getAttribute(ATTRIBUTE_RECONNECT_WAIT_TIME));
@@ -70,6 +91,7 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 			builder.addPropertyReference("logger", loggerRef);
 		}
 
+		// Register bean
 		final String id = element.getAttribute(ATTRIBUTE_ID);
 
 		final AbstractBeanDefinition beanDefinition = builder.getBeanDefinition();

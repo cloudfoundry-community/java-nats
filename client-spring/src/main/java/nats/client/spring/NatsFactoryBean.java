@@ -16,13 +16,18 @@
  */
 package nats.client.spring;
 
+import nats.NatsException;
 import nats.NatsLogger;
 import nats.client.ExceptionHandler;
+import nats.client.Message;
+import nats.client.MessageHandler;
 import nats.client.Nats;
 import org.jboss.netty.channel.ChannelFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +46,8 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 	private NatsLogger logger;
 	private int maxReconnectAttempts = -1;
 	private long reconnectWaitTime = -1;
+
+	private Collection<SubscriptionConfig> subscriptions;
 
 	@Override
 	public Nats getObject() throws Exception {
@@ -71,6 +78,22 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 			builder.reconnectWaitTime(reconnectWaitTime, TimeUnit.MILLISECONDS);
 		}
 		nats = builder.connect();
+		for (SubscriptionConfig subscription : subscriptions) {
+			final Object bean = subscription.getBean();
+			final Method method = bean.getClass().getMethod(subscription.getMethodName(), Message.class);
+			nats.subscribe(subscription.getSubscription(), subscription.getQueueGroup()).addMessageHandler(new MessageHandler() {
+				@Override
+				public void onMessage(Message message) {
+					try {
+						method.invoke(bean, message);
+					} catch (IllegalAccessException e) {
+						throw new Error(e);
+					} catch (InvocationTargetException e) {
+						throw new NatsException(e.getTargetException());
+					}
+				}
+			});
+		}
 		return nats;
 	}
 
@@ -119,4 +142,7 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 		this.reconnectWaitTime = reconnectWaitTime;
 	}
 
+	public void setSubscriptions(Collection<SubscriptionConfig> subscriptions) {
+		this.subscriptions = subscriptions;
+	}
 }
