@@ -30,6 +30,7 @@
 	<modules>
 		<module>client</module>
 		<module>client-spring</module>
+		<module>vcap</module>
 	</modules>
 
 	<dependencyManagement>
@@ -58,6 +59,11 @@
 			<dependency>
 				<groupId>com.github.jnats</groupId>
 				<artifactId>nats-client</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.jnats</groupId>
+				<artifactId>nats-vcap</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>
