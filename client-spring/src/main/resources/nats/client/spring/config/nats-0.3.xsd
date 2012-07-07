@@ -27,14 +27,24 @@
 		</xsd:complexType>
 	</xsd:element>
 
-	<xsd:element name="annotation-config">
-		<xsd:complexType>
-			<xsd:attribute name="nats-ref" default="nats" />
-		</xsd:complexType>
-	</xsd:element>
+	<!--<xsd:element name="annotation-config">-->
+		<!--<xsd:complexType>-->
+			<!--<xsd:attribute name="nats-ref" default="nats" />-->
+		<!--</xsd:complexType>-->
+	<!--</xsd:element>-->
 
 	<xsd:element name="nats-vcap">
 		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="subscription" minOccurs="0" maxOccurs="unbounded">
+					<xsd:complexType>
+						<xsd:attribute name="type" type="xsd:string" use="required" />
+						<xsd:attribute name="ref" type="xsd:string" use="required" />
+						<xsd:attribute name="method" type="xsd:string" use="required" />
+						<xsd:attribute name="queue-group" type="xsd:string" use="optional" />
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
 			<xsd:attribute name="id" type="xsd:string" default="natsVcap" />
 			<xsd:attribute name="nats-ref" default="nats" />
 		</xsd:complexType>
