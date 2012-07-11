@@ -21,7 +21,7 @@
 	<url>https://github.com/mheath/jnats</url>
 
 	<properties>
-		<jackson.version>1.9.7</jackson.version>
+		<jackson.version>1.9.8</jackson.version>
 		<netty.version>3.5.2.Final</netty.version>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<testng.version>6.3.1</testng.version>
