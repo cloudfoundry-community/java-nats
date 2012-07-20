@@ -45,9 +45,6 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 	static final String ELEMENT_HOST = "host";
 	static final String ELEMENT_SUBSCRIPTION = "subscription";
 	static final String ATTRIBUTE_SUBJECT = "subject";
-	static final String ATTRIBUTE_REF = "ref";
-	static final String ATTRIBUTE_METHOD = "method";
-	static final String ATTRIBUTE_QUEUE_GROUP = "queue-group";
 
 	@Override
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
@@ -67,9 +64,7 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 		for (Element subscriptionElement : subscriptionElements) {
 			final BeanDefinitionBuilder subscriptionBuilder = BeanDefinitionBuilder.genericBeanDefinition(SubscriptionConfig.class);
 			subscriptionBuilder.addConstructorArgValue(subscriptionElement.getAttribute(ATTRIBUTE_SUBJECT));
-			subscriptionBuilder.addConstructorArgReference(subscriptionElement.getAttribute(ATTRIBUTE_REF));
-			subscriptionBuilder.addConstructorArgValue(subscriptionElement.getAttribute(ATTRIBUTE_METHOD));
-			subscriptionBuilder.addConstructorArgValue(subscriptionElement.getAttribute(ATTRIBUTE_QUEUE_GROUP));
+			Util.parseSubscriptionConfigAttributes(subscriptionElement, subscriptionBuilder);
 			subscriptions.add(subscriptionBuilder.getBeanDefinition());
 		}
 		builder.addPropertyValue("subscriptions", subscriptions);
@@ -99,4 +94,5 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 
 		return beanDefinition;
 	}
+
 }
