@@ -7,7 +7,7 @@
 	<xsd:element name="nats">
 		<xsd:complexType>
 			<xsd:sequence>
-				<xsd:element name="host" type="xsd:string" minOccurs="1" maxOccurs="unbounded" />
+				<xsd:element name="url" type="xsd:string" minOccurs="1" maxOccurs="unbounded" />
 				<xsd:sequence>
 					<xsd:element name="subscription" minOccurs="0" maxOccurs="unbounded">
 						<xsd:complexType>

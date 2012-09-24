@@ -42,7 +42,7 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 	static final String ATTRIBUTE_LOGGER_REF = "logger-ref";
 	static final String ATTRIBUTE_MAX_RECONNECT_ATTEMPTS = "max-reconnect-attempts";
 	static final String ATTRIBUTE_RECONNECT_WAIT_TIME = "reconnect-wait-time";
-	static final String ELEMENT_HOST = "host";
+	static final String ELEMENT_URL = "url";
 	static final String ELEMENT_SUBSCRIPTION = "subscription";
 	static final String ATTRIBUTE_SUBJECT = "subject";
 
@@ -52,7 +52,7 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 
 		// Parse list of hosts
 		final List<String> uris = new ManagedList<String>();
-		final List<Element> hosts = DomUtils.getChildElementsByTagName(element, ELEMENT_HOST);
+		final List<Element> hosts = DomUtils.getChildElementsByTagName(element, ELEMENT_URL);
 		for (Element host : hosts) {
 			uris.add(host.getTextContent());
 		}
