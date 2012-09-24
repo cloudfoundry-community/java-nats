@@ -25,12 +25,28 @@
 		<netty.version>3.5.3.Final</netty.version>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<testng.version>6.3.1</testng.version>
+		<java.version>1.6</java.version>
 	</properties>
 
 	<modules>
 		<module>client</module>
 		<module>client-spring</module>
 	</modules>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<configuration>
+						<source>${java.version}</source>
+						<target>${java.version}</target>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
 
 	<dependencyManagement>
 		<dependencies>
