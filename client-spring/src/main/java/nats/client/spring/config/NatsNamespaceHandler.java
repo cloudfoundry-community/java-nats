@@ -16,7 +16,6 @@
  */
 package nats.client.spring.config;
 
-import org.springframework.beans.factory.xml.NamespaceHandler;
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
 /**
@@ -26,6 +25,6 @@ public class NatsNamespaceHandler extends NamespaceHandlerSupport {
 	@Override
 	public void init() {
 		registerBeanDefinitionParser("nats", new NatsBeanDefinitionParser());
-		registerBeanDefinitionParser("nats-vcap", new NatsVcapBeanDefinitionParser());
+		registerBeanDefinitionParser("annotation-config", new AnnotationConfigDefinitionParser());
 	}
 }

@@ -30,26 +30,8 @@
 		</xsd:complexType>
 	</xsd:element>
 
-	<!--<xsd:element name="annotation-config">-->
-		<!--<xsd:complexType>-->
-			<!--<xsd:attribute name="nats-ref" default="nats" />-->
-		<!--</xsd:complexType>-->
-	<!--</xsd:element>-->
-
-	<xsd:element name="nats-vcap">
+	<xsd:element name="annotation-config">
 		<xsd:complexType>
-			<xsd:sequence>
-				<xsd:element name="subscription" minOccurs="0" maxOccurs="unbounded">
-					<xsd:complexType>
-						<xsd:complexContent>
-							<xsd:extension base="subscription">
-								<xsd:attribute name="type" type="xsd:string" use="required" />
-							</xsd:extension>
-						</xsd:complexContent>
-					</xsd:complexType>
-				</xsd:element>
-			</xsd:sequence>
-			<xsd:attribute name="id" type="xsd:string" default="natsVcap" />
 			<xsd:attribute name="nats-ref" default="nats" />
 		</xsd:complexType>
 	</xsd:element>
