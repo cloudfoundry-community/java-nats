@@ -41,10 +41,10 @@ private nats.client.Nats nats;
 
 public void myMethod() {
 	nats.subscribe("some.nats.subject", new MessageHandler() {
-    @Override
-    public void onMessage(Message message) {
-        System.out.println("Received: " + message);
-    }
+	@Override
+		public void onMessage(Message message) {
+			System.out.println("Received: " + message);
+		}
 	});
 }
 ```
