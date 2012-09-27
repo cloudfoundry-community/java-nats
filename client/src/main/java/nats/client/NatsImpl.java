@@ -247,7 +247,7 @@ class NatsImpl implements Nats {
 
 			@Override
 			public void serverInfo(ChannelHandlerContext ctx, ServerInfoMessage infoMessage) {
-				// TODO Parse info body for alternative servers to connect to.
+				// TODO Parse info body for alternative servers to connect to as soon as NATS' clustering support starts sending this.
 			}
 
 			@Override
