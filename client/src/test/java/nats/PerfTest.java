@@ -3,6 +3,7 @@ package nats;
 import nats.client.Message;
 import nats.client.MessageHandler;
 import nats.client.Nats;
+import nats.client.NatsConnector;
 import nats.client.Subscription;
 import nats.client.SubscriptionIterator;
 
@@ -15,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
  */
 public class PerfTest {
 	public static void main(String[] args) throws Exception {
-		final Nats.Builder builder = new Nats.Builder().addHost("nats://localhost").debug(true);
+		final NatsConnector builder = new NatsConnector().addHost("nats://localhost").debug(true);
 		final Nats sender = builder.connect();
 		for (int i = 100; i  <= 1000; i += 100) {
 			final Collection<Nats> connections = new ArrayList<Nats>(i);

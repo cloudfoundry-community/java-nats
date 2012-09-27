@@ -22,6 +22,7 @@ import nats.client.ExceptionHandler;
 import nats.client.Message;
 import nats.client.MessageHandler;
 import nats.client.Nats;
+import nats.client.NatsConnector;
 import org.jboss.netty.channel.ChannelFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
@@ -54,7 +55,7 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 		if (nats != null) {
 			return nats;
 		}
-		final Nats.Builder builder = new Nats.Builder();
+		final NatsConnector builder = new NatsConnector();
 		if (hostUris == null) {
 			throw new IllegalStateException("At least one host URI must be provided.");
 		}

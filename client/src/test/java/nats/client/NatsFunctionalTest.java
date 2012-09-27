@@ -45,7 +45,7 @@ public class NatsFunctionalTest {
 
 	@Test
 	public void connectionTest() throws Exception {
-		final Nats nats = new Nats.Builder().addHost(natsServer.getUri()).connect();
+		final Nats nats = new NatsConnector().addHost(natsServer.getUri()).connect();
 		try {
 			Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(2, TimeUnit.SECONDS));
 		} finally {
@@ -55,12 +55,12 @@ public class NatsFunctionalTest {
 
 	@Test(expectedExceptions = IllegalStateException.class)
 	public void connectAttemptWithNoHosts() {
-		new Nats.Builder().connect();
+		new NatsConnector().connect();
 	}
 
 	@Test(expectedExceptions = IllegalArgumentException.class)
 	public void connectAttemptWithBadUri() {
-		new Nats.Builder().addHost("http://localhost").connect();
+		new NatsConnector().addHost("http://localhost").connect();
 	}
 
 	@Test
@@ -176,7 +176,7 @@ public class NatsFunctionalTest {
 	}
 
 	protected void runNatsTest(NatsTestCase testCase) throws Exception {
-		final Nats nats = new Nats.Builder().addHost(natsServer.getUri()).debug(true).connect();
+		final Nats nats = new NatsConnector().addHost(natsServer.getUri()).debug(true).connect();
 		Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(5, TimeUnit.SECONDS), "Did not connect to NATS server.");
 		Assert.assertTrue(nats.getConnectionStatus().isConnected());
 		try {
