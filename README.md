@@ -1,7 +1,7 @@
 # Java NATS Client
 
-A Java client for the excellent NATS lightweight publish-subscribe and distributed queueing messaging system created
-by Derek Collision.
+A Java client for the excellent NATS lightweight publish-subscribe and distributed queueing messaging system used by
+[Cloud Foundry](http://cloudfoundry.com).
 
 More information about NATS can be found at the [NATS Git Hub project](https://github.com/derekcollison/nats).
 
