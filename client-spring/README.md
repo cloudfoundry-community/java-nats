@@ -8,10 +8,10 @@ the following example:
 <beans xmlns="http://www.springframework.org/schema/beans"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         default-lazy-init="false"
-        xmlns:nats="http://mheath.github.com/schema/spring/nats"
+        xmlns:nats="http://mheath.github.com/jnats/schema/spring/nats"
         xsi:schemaLocation="
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
-        http://mheath.github.com/schema/spring/nats http://mheath.github.com/schema/spring/nats-0.3.xsd
+        http://mheath.github.com/jnats/schema/spring/nats http://mheath.github.com/jnats/schema/spring/nats-0.3.xsd
         "
         >
 ...

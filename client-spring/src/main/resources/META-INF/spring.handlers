@@ -1,2 +1,2 @@
-http\://mheath.github.com/schema/spring/nats=nats.client.spring.config.NatsNamespaceHandler
+http\://mheath.github.com/jnats/schema/spring/nats=nats.client.spring.config.NatsNamespaceHandler
 
