@@ -21,9 +21,9 @@ the following example:
 You can now configure a NATS client bean doing the following:
 
 ```xml
-	<nats:nats>
-		<nats:url>nats://localhost:4222</nats:url>
-	</nats:nats>
+<nats:nats>
+	<nats:url>nats://localhost:4222</nats:url>
+</nats:nats>
 ```
 
 This creates a nats.client.Nats Spring bean with the id "nats".

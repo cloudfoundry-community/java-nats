@@ -112,12 +112,12 @@ nats.publish("foo", "message").addCompletionHandler(new CompletionHandler<Public
     }
 });
 
-// Add multiple NATS server hosts for automatic fail-over
-Nats nats = new Builder.Nats().addHost("nats://host1").addHost("nats://host2").connect();
+// Add multiple NATS servers when using NATS clustering
+Nats nats = new NatsConnector().addHost("nats://host1").addHost("nats://host2").connect();
 
 // Multiple connections are not really advanced in this NATS client but here's how to do it.
-Nats.Builder builder = new Builder.Nats().addHost("nats://host1");
-Nats nats 1 = builder.connect();
-Nats nats 2 = builder.connect();
+NatsConnector connector = new NatsConnector().addHost("nats://host1");
+Nats nats1 = connector.connect();
+Nats nats2 = connector.connect();
 ```
 
