@@ -93,8 +93,9 @@
 	</licenses>
 
 	<scm>
-		<url>https://mheath@github.com/mheath/jnats.git</url>
-		<connection>https://github.com/mheath/jnats</connection>
+		<url>scm:git:https://mheath@github.com/mheath/jnats.git</url>
+		<connection>scm:git:https://github.com/mheath/jnats</connection>
+		<developerConnection>scm:git:mheath@github.com:mheath/jnats.git</developerConnection>
 	</scm>
 
 	<developers>
