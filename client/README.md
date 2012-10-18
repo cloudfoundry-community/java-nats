@@ -1,4 +1,6 @@
-This NATS client is fully thread-safe.
+[NATS API Documentation](http://mheath.github.com/jnats/apidocs/0.3/client/index.html)
+
+This NATS client is thread-safe.
 
 ## Basic Usage
 
