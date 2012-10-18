@@ -1,3 +1,5 @@
+[Spring NATS API Documentation](http://mheath.github.com/jnats/apidocs/0.3/client-spring/index.html)
+
 ## Configuring a NATS client in Spring
 
 To use NATS with Spring, include the NATS client XML namespace in your Spring context configuration file as shown in
