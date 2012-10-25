@@ -38,7 +38,7 @@ public class ConnectBody {
 	public ConnectBody(
 			@JsonProperty("user")
 			String user,
-			@JsonProperty("password")
+			@JsonProperty("pass")
 			String password,
 			@JsonProperty("pedantic")
 			boolean pedantic,
@@ -50,6 +50,7 @@ public class ConnectBody {
 		this.verbose = verbose;
 	}
 
+	@JsonProperty("pass")
 	public String getPassword() {
 		return password;
 	}
