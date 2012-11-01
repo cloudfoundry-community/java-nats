@@ -41,7 +41,7 @@ public class AnnotationConfigBeanPostProcessor implements BeanPostProcessor {
 							beanName,
 							Message.class.getName(),
 							Subscribe.class.getName()
-							));
+					));
 				}
 				nats.subscribe(annotation.value()).addMessageHandler(new MessageHandler() {
 					@Override
@@ -53,7 +53,7 @@ public class AnnotationConfigBeanPostProcessor implements BeanPostProcessor {
 						} catch (InvocationTargetException e) {
 							final Throwable targetException = e.getTargetException();
 							if (targetException instanceof RuntimeException) {
-								throw (RuntimeException)targetException;
+								throw (RuntimeException) targetException;
 							}
 							throw new RuntimeException(targetException);
 						}

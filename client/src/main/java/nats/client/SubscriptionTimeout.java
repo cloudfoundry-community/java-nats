@@ -40,6 +40,7 @@ public interface SubscriptionTimeout {
 
 	/**
 	 * Returns the subscription that was timed out.
+	 *
 	 * @return the subscription that was timed out.
 	 */
 	Subscription getSubscription();

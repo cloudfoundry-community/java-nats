@@ -44,7 +44,7 @@ public abstract class AbstractClientChannelHandler extends SimpleChannelHandler 
 				publishedMessage(ctx, (ServerPublishMessage) e.getMessage());
 			} else if (e.getMessage() instanceof ServerPingMessage) {
 				serverPing(ctx);
-			} else if (e.getMessage() instanceof  ServerOkMessage) {
+			} else if (e.getMessage() instanceof ServerOkMessage) {
 				okResponse(ctx, pollRequestQueue(), (ServerOkMessage) e.getMessage());
 			} else if (e.getMessage() instanceof ServerErrorMessage) {
 				errorResponse(ctx, pollRequestQueue(), (ServerErrorMessage) e.getMessage());

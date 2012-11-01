@@ -133,8 +133,8 @@ public class NatsFunctionalTest {
 				final String subject = "test.subscription.close";
 
 				final Subscription subscription = nats.subscribe(subject);
-				 // Use the second subscription to make sure messages are being received but not being sent to the
-				 // closed subscription
+				// Use the second subscription to make sure messages are being received but not being sent to the
+				// closed subscription
 				final Subscription subscription2 = nats.subscribe(subject);
 
 				final CountDownLatch latch = new CountDownLatch(3);

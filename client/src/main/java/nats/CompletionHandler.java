@@ -18,7 +18,7 @@ package nats;
 
 /**
  * Provides a callback mechanism to be invoked when the operation represented by a {@link nats.NatsFuture} completes.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface CompletionHandler<T extends NatsFuture> {

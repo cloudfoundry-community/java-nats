@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Provides an {@link Iterator} for fetching Nats subscription messages in a blocking manner.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface SubscriptionIterator extends Iterator<Message>, Closeable {
@@ -31,7 +31,7 @@ public interface SubscriptionIterator extends Iterator<Message>, Closeable {
 	 * Returns {@code true} if this iterator is open. We do not know if/when the Nats server will publish another
 	 * message so we assume another message is pending so, this method always returns true unless this iterator has
 	 * been closed.
-	 *
+	 * <p/>
 	 * <p>Closing the subscription associated with this iterator will close this iterator.
 	 *
 	 * @return {@code true} unless this iterator has been closed.
@@ -52,7 +52,7 @@ public interface SubscriptionIterator extends Iterator<Message>, Closeable {
 	 * Returns the next {@link Message} sent by the Nats server within the specified time limit.
 	 *
 	 * @param timeout the maximum time to wait for a message
-	 * @param unit the time unit of the {@code timeout} argument
+	 * @param unit    the time unit of the {@code timeout} argument
 	 * @return the next {@link Message} sent by the Nats server or {@code null} if a message didn't arrive within the
 	 *         specified time limit.
 	 * @throws NatsClosedException thrown if the iterator closes while waiting for a message.
@@ -68,9 +68,8 @@ public interface SubscriptionIterator extends Iterator<Message>, Closeable {
 
 	/**
 	 * Closes this subscription iterator.
-	 *
+	 * <p/>
 	 * <p>Closing the subscription associated with this iterator will close this iterator.
-	 *
 	 */
 	@Override
 	void close();

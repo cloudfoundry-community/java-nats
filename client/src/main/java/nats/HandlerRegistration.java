@@ -20,12 +20,12 @@ package nats;
  * Provides a registration for a handler such as a {@link CompletionHandler} or {@link nats.client.MessageHandler}. This
  * registration is used to remove the handler from the list of handlers that will be invoked when the pending operation
  * completes.
- * 
+ * <p/>
  * <p>For example, when using a {@link nats.client.Subscription}, you may add a {@link nats.client.MessageHandler} using the
  * {@link nats.client.Subscription#addMessageHandler(nats.client.MessageHandler)} method. This method returns an instance of
  * {@code HandlerRegistration}. When the {@link #remove()} method is invoked, the {@code MessageHandler} is removed
  * from the {@code Subscription} and will no longer be called when new messages arrive on the {@code Subscription}.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface HandlerRegistration {

@@ -45,12 +45,12 @@ public class NatsServerProcess {
 	}
 
 	private static boolean isPortAvailable(int port) {
-			try {
-				new Socket("localhost", port).close();
-				return false;
-			} catch (IOException e) {
-				return true;
-			}
+		try {
+			new Socket("localhost", port).close();
+			return false;
+		} catch (IOException e) {
+			return true;
+		}
 
 	}
 

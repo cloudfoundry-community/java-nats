@@ -93,13 +93,13 @@ class NatsImpl implements Nats {
 
 	/**
 	 * Indicates whether this {@code Nats} instance has been closed or not.
- 	 */
+	 */
 	private volatile boolean closed = false;
 
 	/**
 	 * List of servers to try connecting to. This can be manually configured using
 	 * {@link NatsConnector#addHost(java.net.URI)} and gets updated based on server response to CONNECT message.
-	 *
+	 * <p/>
 	 * <p>Must hold monitor #servers to access post creation.
 	 */
 	private final List<NatsServer> servers;
@@ -111,7 +111,7 @@ class NatsImpl implements Nats {
 
 	/**
 	 * Holds the publish commands that have been queued up due to the connection being down.
-	 *
+	 * <p/>
 	 * <p>Must hold monitor #publishQueue to access this queue.
 	 */
 	private final Queue<Publish> publishQueue = new LinkedList<Publish>();
@@ -119,7 +119,7 @@ class NatsImpl implements Nats {
 	// Subscriptions
 	/**
 	 * Holds the list of subscriptions held by this {@code Nats} instance.
-	 *
+	 * <p/>
 	 * <p>Must hold monitor #subscription to access.
 	 */
 	private final Map<String, NatsSubscription> subscriptions = new HashMap<String, NatsSubscription>();
@@ -332,7 +332,7 @@ class NatsImpl implements Nats {
 
 	private void completePublication(ClientRequest request, Throwable cause) {
 		if (request instanceof HasPublication) {
-			((HasPublication)request).getPublication().setDone(cause);
+			((HasPublication) request).getPublication().setDone(cause);
 		}
 	}
 
@@ -399,7 +399,7 @@ class NatsImpl implements Nats {
 		final List<Runnable> pendingTasks = scheduledExecutorService.shutdownNow();
 		for (Runnable task : pendingTasks) {
 			if (task instanceof HasPublication) {
-				((HasPublication)task).getPublication().setDone(closedException);
+				((HasPublication) task).getPublication().setDone(closedException);
 			}
 		}
 		synchronized (subscriptions) {
@@ -469,6 +469,7 @@ class NatsImpl implements Nats {
 			private final AtomicInteger receivedMessages = new AtomicInteger();
 			private final List<MessageHandler> handlers = new ArrayList<MessageHandler>();
 			private final List<BlockingQueueSubscriptionIterator> iterators = new ArrayList<BlockingQueueSubscriptionIterator>();
+
 			@Override
 			public void close() {
 				synchronized (subscriptions) {
@@ -509,7 +510,7 @@ class NatsImpl implements Nats {
 			@Override
 			public SubscriptionIterator iterator() {
 				final BlockingQueueSubscriptionIterator iterator = new BlockingQueueSubscriptionIterator();
-				synchronized (iterators)  {
+				synchronized (iterators) {
 					iterators.add(iterator);
 				}
 				return iterator;
@@ -529,6 +530,7 @@ class NatsImpl implements Nats {
 			public String getQueueGroup() {
 				return queueGroup;
 			}
+
 			@Override
 			@SuppressWarnings("ConstantConditions")
 			public void onMessage(final String subject, final String body, final String replyTo) {
@@ -734,6 +736,7 @@ class NatsImpl implements Nats {
 
 	private static interface NatsSubscription extends Subscription {
 		void onMessage(String subject, String message, String replyTo);
+
 		String getId();
 	}
 
@@ -741,7 +744,8 @@ class NatsImpl implements Nats {
 		DefaultPublication getPublication();
 	}
 
-	private static interface ScheduledPublication extends Runnable, HasPublication {}
+	private static interface ScheduledPublication extends Runnable, HasPublication {
+	}
 
 	private static class Publish extends ClientPublishMessage implements HasPublication {
 		private final DefaultPublication publication;

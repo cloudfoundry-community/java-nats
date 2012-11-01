@@ -13,7 +13,8 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  *
- */package nats.client;
+ */
+package nats.client;
 
 /**
  * Provides a callback mechanism to be invoked when a subscription times out.

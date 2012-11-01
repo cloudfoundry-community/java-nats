@@ -22,11 +22,11 @@ import java.util.concurrent.TimeUnit;
  * Represents a pending Nats operation. Most operations in Nats are asynchronous meaning that method invocations will
  * return immediately regardless of whether the operation has completed or not. Instances of this class can be used to
  * track these pending operations and determine if they have completed successfully.
- * 
+ * <p/>
  * <p>{@link #addCompletionHandler(CompletionHandler)}</p> can be used to get notified when the pending operation has
  * completed. Alternatively, {@link #await()} or {@link #await(long, java.util.concurrent.TimeUnit)} can be used to
  * block the current thread's execution until the operation completes.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface NatsFuture<H extends CompletionHandler<?>> {
@@ -73,13 +73,11 @@ public interface NatsFuture<H extends CompletionHandler<?>> {
 	/**
 	 * Waits for the pending operation to complete within the specified time limit.
 	 *
+	 * @param timeout the maximum amount of time to wait for the operation to complete
+	 * @param unit    the unit of the {@code timeout} argument
 	 * @return {@code true} if and only if the future was completed within
 	 *         the specified time limit
-	 *
-	 * @param timeout the maximum amount of time to wait for the operation to complete
-	 * @param unit the unit of the {@code timeout} argument
-	 * @throws InterruptedException
-	 *         if the current thread was interrupted
+	 * @throws InterruptedException if the current thread was interrupted
 	 */
 	boolean await(long timeout, TimeUnit unit) throws InterruptedException;
 

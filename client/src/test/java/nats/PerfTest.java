@@ -18,7 +18,7 @@ public class PerfTest {
 	public static void main(String[] args) throws Exception {
 		final NatsConnector builder = new NatsConnector().addHost("nats://localhost").debug(true);
 		final Nats sender = builder.connect();
-		for (int i = 100; i  <= 1000; i += 100) {
+		for (int i = 100; i <= 1000; i += 100) {
 			final Collection<Nats> connections = new ArrayList<Nats>(i);
 			for (int j = 0; j < i; j++) {
 				connections.add(builder.connect());
@@ -61,6 +61,7 @@ public class PerfTest {
 	}
 
 	private static String alphabet = "abcdefghijklmnopqrstuvwxyz";
+
 	private static String createMessage(int size) {
 		char[] message = new char[size];
 		for (int i = 0; i < size; i++) {

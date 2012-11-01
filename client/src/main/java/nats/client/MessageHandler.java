@@ -20,7 +20,7 @@ package nats.client;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface MessageHandler {
-	
+
 	void onMessage(Message message);
-	
+
 }

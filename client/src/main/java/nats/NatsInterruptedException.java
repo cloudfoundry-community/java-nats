@@ -18,7 +18,7 @@ package nats;
 
 /**
  * Thrown when the current thread has been interrupted. This exception will always wrap an {@link InterruptedException}.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsInterruptedException extends NatsException {

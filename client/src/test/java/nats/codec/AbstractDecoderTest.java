@@ -28,7 +28,7 @@ public abstract class AbstractDecoderTest<T> {
 	protected void decoderTest(String packet, DecoderAssertions resultAssertions) throws Exception {
 		for (int packetSize = 1; packetSize < packet.length(); packetSize++) {
 			DecoderEmbedder<T> decoderEmbedder = createDecoderEmbedder();
-			for (int i = 0; i < packet.length(); i+= packetSize) {
+			for (int i = 0; i < packet.length(); i += packetSize) {
 				decoderEmbedder.offer(ChannelBuffers.wrappedBuffer(packet.substring(i, Math.min(i + packetSize, packet.length())).getBytes()));
 			}
 			Assert.assertTrue(decoderEmbedder.finish(), "The decode should have at least one message available.");

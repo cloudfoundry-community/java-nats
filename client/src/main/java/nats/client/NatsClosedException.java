@@ -20,7 +20,7 @@ import nats.NatsException;
 
 /**
  * Thrown when trying to use a {@link Nats} instance that has been closed.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsClosedException extends NatsException {

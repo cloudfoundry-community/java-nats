@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Represents a Nats subscription.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface Subscription extends Closeable, Iterable<Message> {
@@ -79,13 +79,13 @@ public interface Subscription extends Closeable, Iterable<Message> {
 	 * Creates a {@link SubscriptionIterator} that can be used for fetching messages from this subscription in a
 	 * blocking manner. Because {@code Subscription} implements the {@link Iterable} interface, a subscription can be
 	 * used in a Java for loop. For example:
-	 *
+	 * <p/>
 	 * <pre>
 	 *     for (Message message : nats.subscribe("foo.>") {
 	 *         System.out.println(message);
 	 *     }
 	 * </pre>
-	 *
+	 * <p/>
 	 * The for loop may terminate with an exception when the subscription is closed.
 	 *
 	 * @return a {@link SubscriptionIterator}

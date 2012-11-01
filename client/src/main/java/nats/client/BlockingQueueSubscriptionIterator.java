@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A {@link SubscriptionIterator} that is backed by a {@link LinkedBlockingQueue}.
- * 
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 class BlockingQueueSubscriptionIterator implements SubscriptionIterator {
@@ -63,7 +63,7 @@ class BlockingQueueSubscriptionIterator implements SubscriptionIterator {
 
 	private final BlockingQueue<Message> queue = new LinkedBlockingQueue<Message>();
 	private volatile boolean closed = false;
-	
+
 	@Override
 	public boolean hasNext() {
 		return queue.size() > 0 || !closed;

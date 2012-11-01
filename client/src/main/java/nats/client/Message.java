@@ -69,8 +69,8 @@ public interface Message {
 	 * {@link nats.NatsException} will be thrown.
 	 *
 	 * @param message the message with which to reply to the sender
-	 * @param delay the amount of time to wait before sending the reply
-	 * @param unit the time unit of the {@code delay} argument
+	 * @param delay   the amount of time to wait before sending the reply
+	 * @param unit    the time unit of the {@code delay} argument
 	 * @return a {@code Publication} instance representing the pending reply operation
 	 * @throws nats.NatsException if the message did not contain a {@code replyTo} field
 	 */

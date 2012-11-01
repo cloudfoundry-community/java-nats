@@ -13,7 +13,7 @@ public class Test {
 		MethodInvoker invoker = new MethodInvoker();
 		invoker.setTargetObject(new Test());
 		invoker.setTargetMethod("test");
-		invoker.setArguments(new Object[] {Integer.valueOf(1), "Hi"});
+		invoker.setArguments(new Object[]{Integer.valueOf(1), "Hi"});
 		invoker.prepare();
 		invoker.invoke();
 	}

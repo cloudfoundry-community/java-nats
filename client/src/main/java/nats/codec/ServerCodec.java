@@ -26,7 +26,7 @@ import org.jboss.netty.channel.MessageEvent;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ServerCodec  extends AbstractCodec implements ChannelDownstreamHandler {
+public class ServerCodec extends AbstractCodec implements ChannelDownstreamHandler {
 
 	private ClientPublishMessage message;
 
@@ -78,7 +78,7 @@ public class ServerCodec  extends AbstractCodec implements ChannelDownstreamHand
 				throw new NatsDecodingException(command);
 			}
 			final String subject = parts[0];
-			final String id = parts[parts.length -1];
+			final String id = parts[parts.length - 1];
 			final String queueGroup = (parts.length == 3) ? parts[1] : null;
 			return new ClientSubscribeMessage(id, subject, queueGroup);
 		}

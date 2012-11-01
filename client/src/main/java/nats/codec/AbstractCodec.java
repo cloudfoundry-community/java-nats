@@ -18,7 +18,7 @@ abstract class AbstractCodec extends FrameDecoder {
 
 	private static final ChannelBuffer DELIMITER = ChannelBuffers.wrappedBuffer(new byte[]{'\r', '\n'});
 
-	protected enum State { COMMAND, BODY }
+	protected enum State {COMMAND, BODY}
 
 	private State state = State.COMMAND;
 	private int bodyLength = 0;
@@ -76,16 +76,16 @@ abstract class AbstractCodec extends FrameDecoder {
 	protected abstract Object decodeCommand(String command);
 
 	private void throwTooLongFrameException(ChannelHandlerContext ctx) {
-			Channels.fireExceptionCaught(
-					ctx.getChannel(),
-					new TooLongFrameException("message size exceeds " + maxMessageSize));
-		}
+		Channels.fireExceptionCaught(
+				ctx.getChannel(),
+				new TooLongFrameException("message size exceeds " + maxMessageSize));
+	}
 
 	/**
 	 * Returns the number of bytes between the readerIndex of the haystack and
 	 * the first needle found in the haystack.  -1 is returned if no needle is
 	 * found in the haystack.
-	 *
+	 * <p/>
 	 * Copied from {@link org.jboss.netty.handler.codec.frame.DelimiterBasedFrameDecoder}.
 	 */
 	private int indexOf(ChannelBuffer haystack, ChannelBuffer needle) {
@@ -111,7 +111,6 @@ abstract class AbstractCodec extends FrameDecoder {
 		}
 		return -1;
 	}
-
 
 
 }

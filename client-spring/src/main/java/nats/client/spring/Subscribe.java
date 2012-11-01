@@ -14,6 +14,7 @@ public @interface Subscribe {
 
 	/**
 	 * The NATS subject to subscribe to.
+	 *
 	 * @return the NATS subject.
 	 */
 	String value();
