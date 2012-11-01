@@ -3,7 +3,7 @@ package nats.client.spring;
 import nats.client.Message;
 
 /**
- * @author Mike Heath <heathma@ldschurch.org>
+ * @author Mike Heath <elcapo@gmail.com>
  */
 public class SubscribeBean {
 
