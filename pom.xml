@@ -21,7 +21,7 @@
 
 	<properties>
 		<jackson.version>1.9.8</jackson.version>
-		<netty.version>3.5.3.Final</netty.version>
+		<netty.version>4.0.0.Alpha5</netty.version>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<testng.version>6.3.1</testng.version>
 		<java.version>1.6</java.version>
@@ -73,11 +73,6 @@
 			<dependency>
 				<groupId>com.github.jnats</groupId>
 				<artifactId>nats-client</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.github.jnats</groupId>
-				<artifactId>nats-vcap</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>

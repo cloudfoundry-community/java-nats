@@ -21,7 +21,7 @@ import nats.HandlerRegistration;
 import nats.NatsException;
 import nats.NatsLogger;
 import nats.NatsServerException;
-import nats.codec.AbstractClientChannelHandler;
+import nats.codec.AbstractClientInboundMessageHandlerAdapter;
 import nats.codec.ClientChannelPipelineFactory;
 import nats.codec.ClientConnectMessage;
 import nats.codec.ClientPingMessage;
@@ -243,7 +243,7 @@ class NatsImpl implements Nats {
 				}
 			});
 		}
-		pipeline.addLast("handler", new AbstractClientChannelHandler() {
+		pipeline.addLast("handler", new AbstractClientInboundMessageHandlerAdapter() {
 			@Override
 			public void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message) {
 				final NatsSubscription subscription;

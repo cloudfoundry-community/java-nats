@@ -143,6 +143,6 @@ public class ClientCodecTest extends AbstractDecoderTest<ServerMessage> {
 
 	@Override
 	protected DecoderEmbedder<ServerMessage> createDecoderEmbedder() {
-		return new DecoderEmbedder<ServerMessage>(new ClientCodec());
+		return new DecoderEmbedder<ServerMessage>(new OldClientCodec());
 	}
 }

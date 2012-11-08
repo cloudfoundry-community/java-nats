@@ -19,7 +19,7 @@ package nats.codec;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientPingMessage extends AbstractPing implements ClientMessage {
+public class ClientPingMessage implements ClientMessage {
 
 	public static ClientPingMessage PING = new ClientPingMessage();
 

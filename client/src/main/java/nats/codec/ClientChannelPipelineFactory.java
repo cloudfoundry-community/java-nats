@@ -44,7 +44,7 @@ public class ClientChannelPipelineFactory implements ChannelPipelineFactory {
 	@Override
 	public ChannelPipeline getPipeline() {
 		final ChannelPipeline pipeline = Channels.pipeline();
-		pipeline.addLast(PIPELINE_CODEC, new ClientCodec(maxMessageSize));
+		pipeline.addLast(PIPELINE_CODEC, new OldClientCodec(maxMessageSize));
 		return pipeline;
 	}
 }

@@ -19,5 +19,8 @@ package nats.codec;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ServerPingMessage extends AbstractPing implements ServerMessage {
+public class ServerPingMessage implements ServerMessage {
+
+	public static final ServerPingMessage PING = new ServerPingMessage();
+
 }

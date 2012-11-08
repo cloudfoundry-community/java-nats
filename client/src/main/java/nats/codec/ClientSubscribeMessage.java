@@ -16,15 +16,13 @@
  */
 package nats.codec;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ClientSubscribeMessage implements ClientMessage, ClientRequest {
-
-	public static final String CMD_SUBSCRIBE = "SUB";
 
 	private final String id;
 
@@ -51,19 +49,4 @@ public class ClientSubscribeMessage implements ClientMessage, ClientRequest {
 		return subject;
 	}
 
-	@Override
-	public ChannelBuffer encode() {
-		ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-		buffer.writeBytes(CMD_SUBSCRIBE.getBytes());
-		buffer.writeByte(' ');
-		buffer.writeBytes(subject.getBytes());
-		buffer.writeByte(' ');
-		if (queueGroup != null) {
-			buffer.writeBytes(queueGroup.getBytes());
-			buffer.writeByte(' ');
-		}
-		buffer.writeBytes(id.getBytes());
-		buffer.writeBytes(ChannelBufferUtil.CRLF);
-		return buffer;
-	}
 }
