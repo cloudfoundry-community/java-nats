@@ -811,6 +811,16 @@ class NatsImpl implements Nats {
 			return serverReady;
 		}
 
+		@Override
+		public SocketAddress getLocalAddress() {
+			return channel.getLocalAddress();
+		}
+
+		@Override
+		public SocketAddress getRemoteAddress() {
+			return channel.getRemoteAddress();
+		}
+
 		public void setServerReady(boolean ready) {
 			this.serverReady = ready;
 			if (serverReady) {
