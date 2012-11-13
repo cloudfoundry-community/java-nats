@@ -16,6 +16,7 @@
  */
 package nats.client;
 
+import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -30,5 +31,9 @@ public interface ConnectionStatus {
 	boolean awaitConnectionClose(long time, TimeUnit unit) throws InterruptedException;
 
 	boolean awaitServerReady(long time, TimeUnit unit) throws InterruptedException;
+
+	SocketAddress getLocalAddress();
+
+	SocketAddress getRemoteAddress();
 
 }
