@@ -18,18 +18,32 @@ package nats.client;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsServerProcess {
 
+	private static final long NATS_SERVER_STARTUP_TIMEOUT = TimeUnit.SECONDS.toMillis(10);
+
 	private final int port;
+	private final String userName;
+	private final String password;
 
 	private Process process;
 
 	public NatsServerProcess(int port) {
+		this(port, null, null);
+	}
+
+	public NatsServerProcess(int port, String userName, String password) {
 		this.port = port;
+		this.userName = userName;
+		this.password = password;
 	}
 
 	public void start() throws IOException {
@@ -39,7 +53,19 @@ public class NatsServerProcess {
 		if (!isPortAvailable(port)) {
 			throw new IllegalStateException("Something is already listening on port " + port);
 		}
-		ProcessBuilder builder = new ProcessBuilder("nats-server", "-p", Integer.toString(port));
+		final List<String> command = new ArrayList<String>();
+		command.add("nats-server");
+		command.add("-p");
+		command.add(Integer.toString(port));
+		if (userName != null) {
+			command.add("--user");
+			command.add(userName);
+		}
+		if (password != null) {
+			command.add("--pass");
+			command.add(password);
+		}
+		final ProcessBuilder builder = new ProcessBuilder(command.toArray(new String[command.size()]));
 		process = builder.start();
 		waitForPort();
 	}
@@ -76,15 +102,23 @@ public class NatsServerProcess {
 	}
 
 	private void waitForPort() {
-		while (true) {
-			if (!isPortAvailable(4000)) {
+		final long start = System.currentTimeMillis();
+		while (System.currentTimeMillis() - start < NATS_SERVER_STARTUP_TIMEOUT) {
+			if (!isPortAvailable(port)) {
 				return;
 			}
 			Thread.yield();
 		}
+		throw new RuntimeException("NATS server failed to start.");
 	}
 
 	public String getUri() {
-		return "nats://localhost:" + port;
+		final StringBuilder builder = new StringBuilder();
+		builder.append("nats://");
+		if (userName != null) {
+			builder.append(userName).append(":").append(password).append("@");
+		}
+		builder.append("localhost:").append(port);
+		return builder.toString();
 	}
 }
