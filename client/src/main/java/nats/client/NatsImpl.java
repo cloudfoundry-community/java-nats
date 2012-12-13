@@ -482,10 +482,6 @@ class NatsImpl implements Nats {
 		assertNatsOpen();
 		final String id = Integer.toString(subscriptionId.incrementAndGet());
 		NatsSubscription subscription = new NatsSubscription() {
-			private final AtomicInteger receivedMessages = new AtomicInteger();
-			private final List<MessageHandler> handlers = new ArrayList<MessageHandler>();
-			private final List<BlockingQueueSubscriptionIterator> iterators = new ArrayList<BlockingQueueSubscriptionIterator>();
-
 			@Override
 			public void close() {
 				synchronized (subscriptions) {
@@ -501,150 +497,6 @@ class NatsImpl implements Nats {
 						channel.write(new ClientUnsubscribeMessage(id, maxMessages));
 					}
 				}
-			}
-
-			@Override
-			public String getSubject() {
-				return subject;
-			}
-
-			@Override
-			public HandlerRegistration addMessageHandler(final MessageHandler messageHandler) {
-				synchronized (handlers) {
-					handlers.add(messageHandler);
-				}
-				return new HandlerRegistration() {
-					@Override
-					public void remove() {
-						synchronized (handlers) {
-							handlers.remove(messageHandler);
-						}
-					}
-				};
-			}
-
-			@Override
-			public SubscriptionIterator iterator() {
-				final BlockingQueueSubscriptionIterator iterator = new BlockingQueueSubscriptionIterator();
-				synchronized (iterators) {
-					iterators.add(iterator);
-				}
-				return iterator;
-			}
-
-			@Override
-			public int getReceivedMessages() {
-				return receivedMessages.get();
-			}
-
-			@Override
-			public Integer getMaxMessages() {
-				return maxMessages;
-			}
-
-			@Override
-			public String getQueueGroup() {
-				return queueGroup;
-			}
-
-			@Override
-			@SuppressWarnings("ConstantConditions")
-			public void onMessage(final String subject, final String body, final String replyTo) {
-				final int messageCount = receivedMessages.incrementAndGet();
-				if (maxMessages != null && messageCount >= maxMessages) {
-					close();
-				}
-				final Subscription subscription = this;
-				final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
-				Message message = new Message() {
-					@Override
-					public Subscription getSubscription() {
-						return subscription;
-					}
-
-					@Override
-					public String getSubject() {
-						return subject;
-					}
-
-					@Override
-					public String getBody() {
-						return body;
-					}
-
-					@Override
-					public String getReplyTo() {
-						return replyTo;
-					}
-
-					@Override
-					public Publication reply(String message) {
-						if (!hasReply) {
-							throw new NatsException("Message does not have a replyTo address to send the message to.");
-						}
-						return publish(replyTo, message);
-
-					}
-
-					@Override
-					public Publication reply(final String message, long delay, TimeUnit unit) {
-						if (!hasReply) {
-							throw new NatsException("Message does not have a replyTo address to send the message to.");
-						}
-						final DefaultPublication publication = new DefaultPublication(replyTo, message, null, exceptionHandler);
-						scheduledExecutorService.schedule(new ScheduledPublication() {
-							@Override
-							public void run() {
-								publish(publication);
-							}
-
-							@Override
-							public DefaultPublication getPublication() {
-								return publication;
-							}
-						}, delay, unit);
-						return publication;
-					}
-
-					@Override
-					public String toString() {
-						StringBuilder builder = new StringBuilder();
-						builder.append("[subject: '").append(subject).append("', body: '").append(body).append("'");
-						if (hasReply) {
-							builder.append(", replyTo: '").append(replyTo).append("'");
-						}
-						builder.append(']');
-						return builder.toString();
-					}
-				};
-				synchronized (handlers) {
-					for (MessageHandler handler : handlers) {
-						try {
-							handler.onMessage(message);
-						} catch (Throwable t) {
-							exceptionHandler.onException(t);
-						}
-					}
-				}
-				synchronized (iterators) {
-					for (BlockingQueueSubscriptionIterator iterator : iterators) {
-						try {
-							iterator.push(message);
-						} catch (Throwable t) {
-							exceptionHandler.onException(t);
-						}
-					}
-				}
-			}
-
-			@Override
-			public SubscriptionTimeout timeout(long time, TimeUnit unit) {
-				return new DefaultSubscriptionTimeout(scheduledExecutorService, this, exceptionHandler, time, unit);
-			}
-
-			@Override
-			public String getId() {
-				return id;
 			}
 		};
 
@@ -750,7 +602,7 @@ class NatsImpl implements Nats {
 
 	}
 
-	private static interface NatsSubscription extends Subscription {
+	private abstract static class NatsSubscription extends AbstractSubscription {
 		void onMessage(String subject, String message, String replyTo);
 
 		String getId();

@@ -22,7 +22,7 @@ import java.io.Closeable;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Represents a Nats subscription.
+ * Represents a NATS subscription.
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
