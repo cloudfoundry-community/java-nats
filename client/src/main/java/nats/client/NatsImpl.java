@@ -17,7 +17,6 @@
 package nats.client;
 
 import nats.Constants;
-import nats.HandlerRegistration;
 import nats.NatsException;
 import nats.NatsLogger;
 import nats.NatsServerException;
@@ -149,12 +148,6 @@ class NatsImpl implements Nats {
 	private final NatsConnectionStatus connectionStatus = new NatsConnectionStatus();
 
 	private final boolean debug;
-
-	/**
-	 * Class used for configuring and creating {@link Nats} instances.
-	 */
-	public static class Builder {
-	}
 
 	private static final Random random = new Random();
 
@@ -481,22 +474,56 @@ class NatsImpl implements Nats {
 	public Subscription subscribe(final String subject, final String queueGroup, final Integer maxMessages) {
 		assertNatsOpen();
 		final String id = Integer.toString(subscriptionId.incrementAndGet());
-		NatsSubscription subscription = new NatsSubscription() {
+		NatsSubscription subscription = new NatsSubscription(subject, queueGroup, maxMessages) {
 			@Override
 			public void close() {
+				super.close();
 				synchronized (subscriptions) {
 					subscriptions.remove(id);
 				}
-				synchronized (iterators) {
-					for (BlockingQueueSubscriptionIterator iterator : iterators) {
-						iterator.close();
-					}
+				if (maxMessages == null && !closed) {
+					channel.write(new ClientUnsubscribeMessage(id, maxMessages));
 				}
-				if (maxMessages == null) {
-					if (!closed) {
-						channel.write(new ClientUnsubscribeMessage(id, maxMessages));
+			}
+
+			@Override
+			protected Message createMessage(String subject, String body, final String replyTo) {
+				final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
+				return new AbstractMessage(this, subject, body, replyTo) {
+					@Override
+					public Publication reply(String message) {
+						if (!hasReply) {
+							throw new NatsException("Message does not have a replyTo address to send the message to.");
+						}
+						return publish(replyTo, message);
+
 					}
-				}
+
+					@Override
+					public Publication reply(final String message, long delay, TimeUnit unit) {
+						if (!hasReply) {
+							throw new NatsException("Message does not have a replyTo address to send the message to.");
+						}
+						final DefaultPublication publication = new DefaultPublication(replyTo, message, null, exceptionHandler);
+						scheduledExecutorService.schedule(new ScheduledPublication() {
+							@Override
+							public void run() {
+								publish(publication);
+							}
+
+							@Override
+							public DefaultPublication getPublication() {
+								return publication;
+							}
+						}, delay, unit);
+						return publication;
+					}
+				};
+			}
+
+			@Override
+			String getId() {
+				return id;
 			}
 		};
 
@@ -602,10 +629,12 @@ class NatsImpl implements Nats {
 
 	}
 
-	private abstract static class NatsSubscription extends AbstractSubscription {
-		void onMessage(String subject, String message, String replyTo);
+	private abstract class NatsSubscription extends AbstractSubscription {
+		protected NatsSubscription(String subject, String queueGroup, Integer maxMessages) {
+			super(subject, queueGroup, maxMessages, scheduledExecutorService, exceptionHandler);
+		}
 
-		String getId();
+		abstract String getId();
 	}
 
 	private static interface HasPublication {

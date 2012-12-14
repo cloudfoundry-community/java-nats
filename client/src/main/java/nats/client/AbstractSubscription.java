@@ -17,15 +17,16 @@
 package nats.client;
 
 import nats.HandlerRegistration;
-import nats.NatsException;
-import nats.codec.ClientUnsubscribeMessage;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * Provides an abstract implementation of the {@link Subscription} interface.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public abstract class AbstractSubscription implements Subscription {
@@ -33,19 +34,26 @@ public abstract class AbstractSubscription implements Subscription {
 	private final List<MessageHandler> handlers = new ArrayList<MessageHandler>();
 	private final List<BlockingQueueSubscriptionIterator> iterators = new ArrayList<BlockingQueueSubscriptionIterator>();
 
+	private final String subject;
+	private final String queueGroup;
+	private final Integer maxMessages;
+
+	private final ScheduledExecutorService scheduledExecutorService;
+	private final ExceptionHandler exceptionHandler;
+
+	protected AbstractSubscription(String subject, String queueGroup, Integer maxMessages, ScheduledExecutorService scheduledExecutorService, ExceptionHandler exceptionHandler) {
+		this.subject = subject;
+		this.queueGroup = queueGroup;
+		this.maxMessages = maxMessages;
+		this.scheduledExecutorService = scheduledExecutorService;
+		this.exceptionHandler = exceptionHandler;
+	}
+
 	@Override
 	public void close() {
 		synchronized (iterators) {
 			for (BlockingQueueSubscriptionIterator iterator : iterators) {
 				iterator.close();
-			}
-		}
-		synchronized (subscriptions) {
-			subscriptions.remove(id);
-		}
-		if (maxMessages == null) {
-			if (!closed) {
-				channel.write(new ClientUnsubscribeMessage(id, maxMessages));
 			}
 		}
 	}
@@ -95,75 +103,17 @@ public abstract class AbstractSubscription implements Subscription {
 	}
 
 	@Override
+	public SubscriptionTimeout timeout(long time, TimeUnit unit) {
+		return new DefaultSubscriptionTimeout(scheduledExecutorService, this, exceptionHandler, time, unit);
+	}
+
 	@SuppressWarnings("ConstantConditions")
-	public void onMessage(final String subject, final String body, final String replyTo) {
+	public void onMessage(String subject, String body, String replyTo) {
 		final int messageCount = receivedMessages.incrementAndGet();
 		if (maxMessages != null && messageCount >= maxMessages) {
 			close();
 		}
-		final Subscription subscription = this;
-		final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
-		Message message = new Message() {
-			@Override
-			public Subscription getSubscription() {
-				return subscription;
-			}
-
-			@Override
-			public String getSubject() {
-				return subject;
-			}
-
-			@Override
-			public String getBody() {
-				return body;
-			}
-
-			@Override
-			public String getReplyTo() {
-				return replyTo;
-			}
-
-			@Override
-			public Publication reply(String message) {
-				if (!hasReply) {
-					throw new NatsException("Message does not have a replyTo address to send the message to.");
-				}
-				return publish(replyTo, message);
-
-			}
-
-			@Override
-			public Publication reply(final String message, long delay, TimeUnit unit) {
-				if (!hasReply) {
-					throw new NatsException("Message does not have a replyTo address to send the message to.");
-				}
-				final DefaultPublication publication = new DefaultPublication(replyTo, message, null, exceptionHandler);
-				scheduledExecutorService.schedule(new ScheduledPublication() {
-					@Override
-					public void run() {
-						publish(publication);
-					}
-
-					@Override
-					public DefaultPublication getPublication() {
-						return publication;
-					}
-				}, delay, unit);
-				return publication;
-			}
-
-			@Override
-			public String toString() {
-				StringBuilder builder = new StringBuilder();
-				builder.append("[subject: '").append(subject).append("', body: '").append(body).append("'");
-				if (hasReply) {
-					builder.append(", replyTo: '").append(replyTo).append("'");
-				}
-				builder.append(']');
-				return builder.toString();
-			}
-		};
+		Message message = createMessage(subject, body, replyTo);
 		synchronized (handlers) {
 			for (MessageHandler handler : handlers) {
 				try {
@@ -184,13 +134,5 @@ public abstract class AbstractSubscription implements Subscription {
 		}
 	}
 
-	@Override
-	public SubscriptionTimeout timeout(long time, TimeUnit unit) {
-		return new DefaultSubscriptionTimeout(scheduledExecutorService, this, exceptionHandler, time, unit);
-	}
-
-	@Override
-	public String getId() {
-		return id;
-	}
+	protected abstract Message createMessage(String subject, String body, String replyTo);
 }

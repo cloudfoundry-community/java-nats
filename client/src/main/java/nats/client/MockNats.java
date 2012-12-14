@@ -16,26 +16,37 @@
  */
 package nats.client;
 
+import nats.NatsException;
+
 import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
 import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Provide a mock instance of {@link Nats} to use primarily for testing purposes. This mock Nats does not support
- * wild card subjects.
+ * Provide a mock instance of {@link Nats} to use primarily for testing purposes. This mock Nats does not yet support
+ * subscribing to subjects with wild cards.
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class MockNats implements Nats {
 
 	private volatile boolean connected = true;
-	private final Map<String, Collection<MockSubscription>> subscriptions = new HashMap<String, Collection<MockSubscription>>();
+	private final Map<String, Collection<AbstractSubscription>> subscriptions = new HashMap<String, Collection<AbstractSubscription>>();
 
-	private final ExceptionHandler exceptionHandler;
+	private final ExceptionHandler exceptionHandler = new ExceptionHandler() {
+		@Override
+		public void onException(Throwable t) {
+			t.printStackTrace();
+		}
+	};
+
+	private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
 	private final ConnectionStatus connectionStatus = new ConnectionStatus() {
 		@Override
@@ -93,7 +104,17 @@ public class MockNats implements Nats {
 	public Publication publish(String subject, String message, String replyTo) {
 		final DefaultPublication publication = new DefaultPublication(subject, message, replyTo, exceptionHandler);
 		publication.setDone(null);
+		publish(publication);
 		return publication;
+	}
+
+	private void publish(DefaultPublication publication) {
+		final Collection<AbstractSubscription> mockSubscriptions = subscriptions.get(publication.getSubject());
+		if (mockSubscriptions != null) {
+			for (AbstractSubscription subscription : mockSubscriptions) {
+				subscription.onMessage(publication.getSubject(), publication.getMessage(), publication.getReplyTo());
+			}
+		}
 	}
 
 	@Override
@@ -113,7 +134,43 @@ public class MockNats implements Nats {
 
 	@Override
 	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages) {
-		return null;
+		final AbstractSubscription subscription = new AbstractSubscription(subject, queueGroup, maxMessages, scheduledExecutorService, exceptionHandler) {
+			@Override
+			protected Message createMessage(final String subject, String body, String replyTo) {
+				final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
+				return new AbstractMessage(this, subject, body, replyTo) {
+					@Override
+					public Publication reply(String message) {
+						if (!hasReply) {
+							throw new NatsException("Message does not have a replyTo address to send the message to.");
+						}
+						return publish(subject, message);
+					}
+
+					@Override
+					public Publication reply(String message, long delay, TimeUnit unit) {
+						if (!hasReply) {
+							throw new NatsException("Message does not have a replyTo address to send the message to.");
+						}
+						final DefaultPublication publication = new DefaultPublication(getReplyTo(), message, null, exceptionHandler);
+						scheduledExecutorService.schedule(new Runnable() {
+							@Override
+							public void run() {
+								publish(publication);
+							}
+						}, delay, unit);
+						return publication;
+					}
+				};
+			}
+		};
+		Collection<AbstractSubscription> mockSubscriptions = subscriptions.get(subject);
+		if (mockSubscriptions == null) {
+			mockSubscriptions = new ArrayList<AbstractSubscription>();
+			subscriptions.put(subject, mockSubscriptions);
+		}
+		mockSubscriptions.add(subscription);
+		return subscription;
 	}
 
 	@Override
@@ -131,6 +188,4 @@ public class MockNats implements Nats {
 		return null;
 	}
 
-	private class MockSubscription {
-	}
 }
