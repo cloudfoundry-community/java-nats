@@ -10,8 +10,8 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.github.jnats</groupId>
-	<artifactId>nats</artifactId>
+	<groupId>com.github.mheath</groupId>
+	<artifactId>nats-parent</artifactId>
 	<version>0.4-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
@@ -71,13 +71,8 @@
 				<version>${spring.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.github.jnats</groupId>
+				<groupId>com.github.mheath</groupId>
 				<artifactId>nats-client</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.github.jnats</groupId>
-				<artifactId>nats-vcap</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 		</dependencies>
