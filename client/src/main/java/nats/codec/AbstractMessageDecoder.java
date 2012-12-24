@@ -5,9 +5,8 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.TooLongFrameException;
+import io.netty.util.CharsetUtil;
 import nats.Constants;
-
-import java.nio.charset.Charset;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
@@ -46,7 +45,7 @@ abstract class AbstractMessageDecoder<T extends NatsMessage> extends ByteToMessa
 						in.skipBytes(frameLength + DELIMITER.capacity());
 						throwTooLongFrameException(ctx);
 					} else {
-						String command = in.readBytes(frameLength).toString(Charset.defaultCharset());
+						String command = in.readBytes(frameLength).toString(CharsetUtil.UTF_8);
 						in.skipBytes(DELIMITER.capacity());
 						return decodeCommand(command);
 					}
@@ -54,7 +53,7 @@ abstract class AbstractMessageDecoder<T extends NatsMessage> extends ByteToMessa
 				break;
 			case BODY:
 				if (in.readableBytes() >= bodyLength + DELIMITER.capacity()) {
-					String body = in.readBytes(bodyLength).toString(Charset.defaultCharset());
+					String body = in.readBytes(bodyLength).toString(CharsetUtil.UTF_8);
 					in.skipBytes(DELIMITER.capacity());
 					state = State.COMMAND;
 					return handleBody(body);
@@ -107,6 +106,5 @@ abstract class AbstractMessageDecoder<T extends NatsMessage> extends ByteToMessa
 		}
 		return -1;
 	}
-
 
 }
