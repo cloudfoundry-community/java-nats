@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
+// TODO This iterator has serious flaws. See Cloud Event Bus version for fixes and tests.
 class BlockingQueueSubscriptionIterator implements SubscriptionIterator {
 
 	private static final Message CLOSED = new Message() {
