@@ -1,5 +1,7 @@
 # Java NATS Client
 
+[![Build Status](https://secure.travis-ci.org/mheath/jnats.png?branch=master)](http://travis-ci.org/mheath/jnats)
+
 A Java client for the excellent NATS lightweight publish-subscribe and distributed queueing messaging system used by
 [Cloud Foundry](http://cloudfoundry.com).
 
