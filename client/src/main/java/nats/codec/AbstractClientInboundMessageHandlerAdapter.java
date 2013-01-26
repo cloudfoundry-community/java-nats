@@ -16,11 +16,12 @@
  */
 package nats.codec;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundMessageHandlerAdapter;
+import io.netty.channel.ChannelOutboundMessageHandlerAdapter;
+import io.netty.channel.CombinedChannelHandler;
 import nats.NatsException;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -29,7 +30,21 @@ import java.util.Queue;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public abstract class AbstractClientChannelHandler extends SimpleChannelHandler {
+public abstract class AbstractClientInboundMessageHandlerAdapter extends CombinedChannelHandler {
+
+	protected AbstractClientInboundMessageHandlerAdapter() {
+		init(new ChannelInboundMessageHandlerAdapter<ServerMessage>() {
+			@Override
+			public void messageReceived(ChannelHandlerContext ctx, ServerMessage msg) throws Exception {
+			}
+		}, new ChannelOutboundMessageHandlerAdapter<ClientMessage>() {
+
+			@Override
+			public void flush(ChannelHandlerContext ctx, ChannelFuture future) throws Exception {
+			}
+		}
+		);
+	}
 
 	// Access must be synchronized on self.
 	private final Queue<ClientPingMessage> pingQueue = new LinkedList<ClientPingMessage>();
@@ -38,27 +53,25 @@ public abstract class AbstractClientChannelHandler extends SimpleChannelHandler 
 	private final Queue<ClientRequest> requestQueue = new LinkedList<ClientRequest>();
 
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-		if (e.getMessage() instanceof ServerMessage) {
-			if (e.getMessage() instanceof ServerPublishMessage) {
-				publishedMessage(ctx, (ServerPublishMessage) e.getMessage());
-			} else if (e.getMessage() instanceof ServerPingMessage) {
-				serverPing(ctx);
-			} else if (e.getMessage() instanceof ServerOkMessage) {
-				okResponse(ctx, pollRequestQueue(), (ServerOkMessage) e.getMessage());
-			} else if (e.getMessage() instanceof ServerErrorMessage) {
-				errorResponse(ctx, pollRequestQueue(), (ServerErrorMessage) e.getMessage());
-			} else if (e.getMessage() instanceof ServerPongMessage) {
-				pongResponse(ctx, pollPingQueue(), (ServerPongMessage) e.getMessage());
-			} else if (e.getMessage() instanceof ServerInfoMessage) {
-				serverInfo(ctx, (ServerInfoMessage) e.getMessage());
-			} else {
-				throw new Error("Received a server response of an unknown type: " + e.getMessage().getClass().getName());
-			}
+	public void messageReceived(ChannelHandlerContext ctx, ClientMessage message) throws Exception {
+		if (message instanceof ServerPublishMessage) {
+			publishedMessage(ctx, (ServerPublishMessage) message);
+		} else if (message instanceof ServerPingMessage) {
+			serverPing(ctx);
+		} else if (message instanceof ServerOkMessage) {
+			okResponse(ctx, pollRequestQueue(), (ServerOkMessage) message);
+		} else if (message instanceof ServerErrorMessage) {
+			errorResponse(ctx, pollRequestQueue(), (ServerErrorMessage) message);
+		} else if (message instanceof ServerPongMessage) {
+			pongResponse(ctx, pollPingQueue(), (ServerPongMessage) message);
+		} else if (message instanceof ServerInfoMessage) {
+			serverInfo(ctx, (ServerInfoMessage) message);
 		} else {
-			super.messageReceived(ctx, e);
+			throw new Error("Received a server response of an unknown type: " + e.getMessage().getClass().getName());
 		}
 	}
+
+
 
 	@Override
 	public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {

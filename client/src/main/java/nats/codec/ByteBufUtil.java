@@ -16,17 +16,32 @@
  */
 package nats.codec;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-class AbstractPong {
+class ByteBufUtil {
 
-	public static final String CMD_PONG = "PONG";
-	private static final ChannelBuffer PONG_BUFFER = ChannelBufferUtil.wrappedBuffer(CMD_PONG + "\r\n");
+	static final byte[] CRLF = "\r\n".getBytes();
+//
+//	static ByteBuf directBuffer(byte[] array) {
+//		final ByteBuf buffer = Unpooled.directBuffer(array.length);
+//		buffer.writeBytes(array);
+//		return buffer;
+//	}
+//
+//	static ByteBuf directBuffer(String string) {
+//		return directBuffer(string.getBytes());
+//	}
+//
+//	static ByteBuf wrappedBuffer(String string) {
+//		return Unpooled.wrappedBuffer(string.getBytes());
+//	}
 
-	public ChannelBuffer encode() {
-		return PONG_BUFFER.duplicate();
+	static void writeIntegerAsString(ByteBuf buffer, int i) {
+		buffer.writeBytes(Integer.toString(i).getBytes());
 	}
+
 }

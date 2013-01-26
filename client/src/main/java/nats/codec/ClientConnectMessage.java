@@ -16,10 +16,10 @@
  */
 package nats.codec;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import nats.NatsException;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 
 import java.io.IOException;
 
@@ -27,8 +27,6 @@ import java.io.IOException;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ClientConnectMessage implements ClientMessage, ClientRequest {
-
-	public static final String CMD_CONNECT = "CONNECT";
 
 	private final ConnectBody body;
 
@@ -38,22 +36,6 @@ public class ClientConnectMessage implements ClientMessage, ClientRequest {
 
 	public ConnectBody getBody() {
 		return body;
-	}
-
-	@Override
-	public ChannelBuffer encode() {
-		ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-		buffer.writeBytes(CMD_CONNECT.getBytes());
-		buffer.writeByte(' ');
-		try {
-			ObjectMapper mapper = new ObjectMapper();
-			final String jsonBody = mapper.writeValueAsString(body);
-			buffer.writeBytes(jsonBody.getBytes());
-		} catch (IOException e) {
-			throw new NatsException(e);
-		}
-		buffer.writeBytes(ChannelBufferUtil.CRLF);
-		return buffer;
 	}
 
 }

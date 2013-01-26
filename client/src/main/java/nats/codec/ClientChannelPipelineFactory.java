@@ -16,15 +16,15 @@
  */
 package nats.codec;
 
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.socket.SocketChannel;
 import nats.Constants;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientChannelPipelineFactory implements ChannelPipelineFactory {
+public class ClientChannelPipelineFactory extends ChannelInitializer<SocketChannel> {
 
 	public static final String PIPELINE_CODEC = "nats-codec";
 
@@ -42,9 +42,9 @@ public class ClientChannelPipelineFactory implements ChannelPipelineFactory {
 	}
 
 	@Override
-	public ChannelPipeline getPipeline() {
-		final ChannelPipeline pipeline = Channels.pipeline();
+	public void initChannel(SocketChannel channel) throws Exception {
+		final ChannelPipeline pipeline = channel.pipeline();
 		pipeline.addLast(PIPELINE_CODEC, new ClientCodec(maxMessageSize));
-		return pipeline;
 	}
+
 }
