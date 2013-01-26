@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package nats.client;
 
 import nats.Constants;
-import nats.NatsLogger;
 import org.jboss.netty.channel.ChannelFactory;
 
 import java.net.URI;
@@ -29,16 +28,13 @@ import java.util.concurrent.TimeUnit;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsConnector {
-	List<URI> hosts = new ArrayList<URI>();
+	List<URI> hosts = new ArrayList<>();
 	boolean automaticReconnect = true;
 	int maxReconnectAttempts = Constants.DEFAULT_MAX_RECONNECT_ATTEMPTS;
 	long reconnectWaitTime = Constants.DEFAULT_RECONNECT_TIME_WAIT;
 	boolean pedantic = false;
 	ChannelFactory channelFactory;
-	NatsLogger logger;
-	ExceptionHandler exceptionHandler;
 	int maxMessageSize = Constants.DEFAULT_MAX_MESSAGE_SIZE;
-	boolean debug = false;
 
 	/**
 	 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
@@ -124,22 +120,6 @@ public class NatsConnector {
 	}
 
 	/**
-	 * Specifies the {@link NatsLogger} to be used by the {@code Nats} instance.
-	 *
-	 * @param logger the {@code NatsLogger} to be used by the {@code Nats} instance.
-	 * @return this {@code Builder} instance.
-	 */
-	public NatsConnector logger(NatsLogger logger) {
-		this.logger = logger;
-		return this;
-	}
-
-	public NatsConnector exceptionHandler(ExceptionHandler exceptionHandler) {
-		this.exceptionHandler = exceptionHandler;
-		return this;
-	}
-
-	/**
 	 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1MB.
 	 *
 	 * @param maxMessageSize the maximum message size that can be received by the {@code} Nats instance.
@@ -147,11 +127,6 @@ public class NatsConnector {
 	 */
 	public NatsConnector maxMessageSize(int maxMessageSize) {
 		this.maxMessageSize = maxMessageSize;
-		return this;
-	}
-
-	public NatsConnector debug(boolean debug) {
-		this.debug = debug;
 		return this;
 	}
 

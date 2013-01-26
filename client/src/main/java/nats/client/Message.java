@@ -36,6 +36,13 @@ public interface Message {
 	boolean isRequest();
 
 	/**
+	 * Returns the subject used to send the message.
+	 *
+	 * @return the subject used to send the message.
+	 */
+	String getSubject();
+
+	/**
 	 * Returns the body of the message.
 	 *
 	 * @return the body of the message.
@@ -43,11 +50,11 @@ public interface Message {
 	String getBody();
 
 	/**
-	 * Returns the reply to subject of the message or {@code null} if the message did not contain a {@code replyTo} field.
+	 * Returns the queue group of the message.
 	 *
-	 * @return the reply to subject of the message or {@code null} if the message did not contain a {@code replyTo} field
+	 * @return the queue group of the message.
 	 */
-	String getReplyTo();
+	String getQueueGroup();
 
 	/**
 	 * Sends a reply to this message. If the the message did not contain a {@code replyTo} field, a

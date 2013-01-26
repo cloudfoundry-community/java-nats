@@ -16,12 +16,11 @@
  */
 package nats.client;
 
-import nats.HandlerRegistration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -29,30 +28,28 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public abstract class AbstractSubscription implements Subscription {
+public class DefaultSubscription implements Subscription {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSubscription.class);
+
 	private final AtomicInteger receivedMessages = new AtomicInteger();
-	private final List<MessageHandler> handlers = new ArrayList<MessageHandler>();
-	private final List<BlockingQueueSubscriptionIterator> iterators = new ArrayList<BlockingQueueSubscriptionIterator>();
+	private final List<MessageHandler> handlers = new ArrayList<>();
+	private final List<BlockingQueueMessageIterator> iterators = new ArrayList<>();
 
 	private final String subject;
 	private final String queueGroup;
 	private final Integer maxMessages;
 
-	private final ScheduledExecutorService scheduledExecutorService;
-	private final ExceptionHandler exceptionHandler;
-
-	protected AbstractSubscription(String subject, String queueGroup, Integer maxMessages, ScheduledExecutorService scheduledExecutorService, ExceptionHandler exceptionHandler) {
+	protected DefaultSubscription(String subject, String queueGroup, Integer maxMessages) {
 		this.subject = subject;
 		this.queueGroup = queueGroup;
 		this.maxMessages = maxMessages;
-		this.scheduledExecutorService = scheduledExecutorService;
-		this.exceptionHandler = exceptionHandler;
 	}
 
 	@Override
 	public void close() {
 		synchronized (iterators) {
-			for (BlockingQueueSubscriptionIterator iterator : iterators) {
+			for (BlockingQueueMessageIterator iterator : iterators) {
 				iterator.close();
 			}
 		}
@@ -79,8 +76,8 @@ public abstract class AbstractSubscription implements Subscription {
 	}
 
 	@Override
-	public SubscriptionIterator iterator() {
-		final BlockingQueueSubscriptionIterator iterator = new BlockingQueueSubscriptionIterator();
+	public MessageIterator iterator() {
+		final BlockingQueueMessageIterator iterator = new BlockingQueueMessageIterator();
 		synchronized (iterators) {
 			iterators.add(iterator);
 		}
@@ -102,37 +99,25 @@ public abstract class AbstractSubscription implements Subscription {
 		return queueGroup;
 	}
 
-	@Override
-	public SubscriptionTimeout timeout(long time, TimeUnit unit) {
-		return new DefaultSubscriptionTimeout(scheduledExecutorService, this, exceptionHandler, time, unit);
-	}
-
 	@SuppressWarnings("ConstantConditions")
 	public void onMessage(String subject, String body, String replyTo) {
 		final int messageCount = receivedMessages.incrementAndGet();
 		if (maxMessages != null && messageCount >= maxMessages) {
 			close();
 		}
-		Message message = createMessage(subject, body, replyTo);
+		Message message = createMessage(subject, body, queueGroup, replyTo);
 		synchronized (handlers) {
 			for (MessageHandler handler : handlers) {
 				try {
 					handler.onMessage(message);
 				} catch (Throwable t) {
-					exceptionHandler.onException(t);
-				}
-			}
-		}
-		synchronized (iterators) {
-			for (BlockingQueueSubscriptionIterator iterator : iterators) {
-				try {
-					iterator.push(message);
-				} catch (Throwable t) {
-					exceptionHandler.onException(t);
+					LOGGER.error("Error handling message", t);
 				}
 			}
 		}
 	}
 
-	protected abstract Message createMessage(String subject, String body, String replyTo);
+	protected Message createMessage(String subject, String body, String queueGroup, String replyTo) {
+		return new DefaultMessage(subject, body, queueGroup, replyTo != null);
+	}
 }

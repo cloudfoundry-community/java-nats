@@ -37,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 public class MockNats implements Nats {
 
 	private volatile boolean connected = true;
-	private final Map<String, Collection<AbstractSubscription>> subscriptions = new HashMap<String, Collection<AbstractSubscription>>();
+	private final Map<String, Collection<DefaultSubscription>> subscriptions = new HashMap<String, Collection<DefaultSubscription>>();
 
 	private final ExceptionHandler exceptionHandler = new ExceptionHandler() {
 		@Override
@@ -109,9 +109,9 @@ public class MockNats implements Nats {
 	}
 
 	private void publish(DefaultPublication publication) {
-		final Collection<AbstractSubscription> mockSubscriptions = subscriptions.get(publication.getSubject());
+		final Collection<DefaultSubscription> mockSubscriptions = subscriptions.get(publication.getSubject());
 		if (mockSubscriptions != null) {
-			for (AbstractSubscription subscription : mockSubscriptions) {
+			for (DefaultSubscription subscription : mockSubscriptions) {
 				subscription.onMessage(publication.getSubject(), publication.getMessage(), publication.getReplyTo());
 			}
 		}
@@ -134,11 +134,11 @@ public class MockNats implements Nats {
 
 	@Override
 	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages) {
-		final AbstractSubscription subscription = new AbstractSubscription(subject, queueGroup, maxMessages, scheduledExecutorService, exceptionHandler) {
+		final DefaultSubscription subscription = new DefaultSubscription(subject, queueGroup, maxMessages, scheduledExecutorService, exceptionHandler) {
 			@Override
 			protected Message createMessage(final String subject, String body, String replyTo) {
 				final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
-				return new AbstractMessage(this, subject, body, replyTo) {
+				return new DefaultMessage(this, subject, body, replyTo) {
 					@Override
 					public Publication reply(String message) {
 						if (!hasReply) {
@@ -164,9 +164,9 @@ public class MockNats implements Nats {
 				};
 			}
 		};
-		Collection<AbstractSubscription> mockSubscriptions = subscriptions.get(subject);
+		Collection<DefaultSubscription> mockSubscriptions = subscriptions.get(subject);
 		if (mockSubscriptions == null) {
-			mockSubscriptions = new ArrayList<AbstractSubscription>();
+			mockSubscriptions = new ArrayList<DefaultSubscription>();
 			subscriptions.put(subject, mockSubscriptions);
 		}
 		mockSubscriptions.add(subscription);

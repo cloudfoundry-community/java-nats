@@ -489,7 +489,7 @@ class NatsImpl implements Nats {
 			@Override
 			protected Message createMessage(String subject, String body, final String replyTo) {
 				final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
-				return new AbstractMessage(this, subject, body, replyTo) {
+				return new DefaultMessage(this, subject, body, replyTo) {
 					@Override
 					public Publication reply(String message) {
 						if (!hasReply) {
@@ -629,7 +629,7 @@ class NatsImpl implements Nats {
 
 	}
 
-	private abstract class NatsSubscription extends AbstractSubscription {
+	private abstract class NatsSubscription extends DefaultSubscription {
 		protected NatsSubscription(String subject, String queueGroup, Integer maxMessages) {
 			super(subject, queueGroup, maxMessages, scheduledExecutorService, exceptionHandler);
 		}

@@ -19,11 +19,13 @@
 	<url>https://github.com/mheath/jnats</url>
 
 	<properties>
+		<java.version>1.7</java.version>
+
 		<jackson.version>1.9.8</jackson.version>
 		<netty.version>3.5.3.Final</netty.version>
+		<slf4j.version>1.6.5</slf4j.version>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<testng.version>6.3.1</testng.version>
-		<java.version>1.6</java.version>
 	</properties>
 
 	<modules>
@@ -68,6 +70,11 @@
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-context</artifactId>
 				<version>${spring.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>${slf4j.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.github.mheath</groupId>

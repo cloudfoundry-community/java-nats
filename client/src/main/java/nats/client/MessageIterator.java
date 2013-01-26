@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
  */
 package nats.client;
 
-import java.io.Closeable;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface SubscriptionIterator extends Iterator<Message>, Closeable {
+public interface MessageIterator extends Iterator<Message>, AutoCloseable {
 
 	/**
 	 * Returns {@code true} if this iterator is open. We do not know if/when the Nats server will publish another

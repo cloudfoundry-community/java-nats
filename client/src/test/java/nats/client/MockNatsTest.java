@@ -33,7 +33,7 @@ public class MockNatsTest {
 		final String subject = "test";
 		final String message = "Have a nice day.";
 		final Subscription subscription = nats.subscribe(subject);
-		final SubscriptionIterator iterator = subscription.iterator();
+		final MessageIterator iterator = subscription.iterator();
 		nats.publish(subject, message);
 		Assert.assertEquals(iterator.next(1, TimeUnit.SECONDS).getBody(), message);
 	}
@@ -43,7 +43,7 @@ public class MockNatsTest {
 		final Nats nats = new MockNats();
 		final String subject = "test";
 		final Subscription subscription = nats.subscribe(subject);
-		final SubscriptionIterator iterator = subscription.iterator();
+		final MessageIterator iterator = subscription.iterator();
 		nats.publish(subject);
 		Assert.assertNull(iterator.next().getBody());
 	}

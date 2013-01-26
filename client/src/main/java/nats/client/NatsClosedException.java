@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -19,12 +19,16 @@ package nats.client;
 import nats.NatsException;
 
 /**
- * Thrown when trying to use a {@link Nats} instance that has been closed.
+ * Thrown when trying to use a {@link Nats} client that has been closed.
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsClosedException extends NatsException {
 	public NatsClosedException() {
-		super("Nats objects was closed.");
+		this("Nats client was closed.");
+	}
+
+	public NatsClosedException(String message) {
+		super(message);
 	}
 }

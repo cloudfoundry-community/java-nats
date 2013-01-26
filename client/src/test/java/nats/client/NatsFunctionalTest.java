@@ -71,7 +71,7 @@ public class NatsFunctionalTest {
 				final String subject = "test";
 				final String message = "Have a nice day.";
 				final Subscription subscription = nats.subscribe(subject);
-				final SubscriptionIterator iterator = subscription.iterator();
+				final MessageIterator iterator = subscription.iterator();
 				nats.publish(subject, message);
 				Assert.assertEquals(iterator.next(1, TimeUnit.SECONDS).getBody(), message);
 			}
@@ -146,7 +146,7 @@ public class NatsFunctionalTest {
 				});
 
 				nats.publish(subject, "First message").await();
-				final SubscriptionIterator iterator = subscription.iterator();
+				final MessageIterator iterator = subscription.iterator();
 				iterator.next(2, TimeUnit.SECONDS);
 				Assert.assertEquals(subscription.getReceivedMessages(), 1, "The first message didn't arrive.");
 				subscription.close();
@@ -165,7 +165,7 @@ public class NatsFunctionalTest {
 			public void natsTest(Nats nats) throws Exception {
 				final String testString = "\uD834\uDD1E";
 				final String subject = "test";
-				final SubscriptionIterator iterator = nats.subscribe(subject).iterator();
+				final MessageIterator iterator = nats.subscribe(subject).iterator();
 				final Process process = new ProcessBuilder("nats-pub", "-s", natsServer.getUri(), subject, testString).start();
 				Assert.assertEquals(process.waitFor(), 0, "Pub failed");
 				final Message message = iterator.next(5, TimeUnit.SECONDS);

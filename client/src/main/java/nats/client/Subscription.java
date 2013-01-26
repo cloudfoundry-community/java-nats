@@ -16,55 +16,39 @@
  */
 package nats.client;
 
-import nats.HandlerRegistration;
-
-import java.io.Closeable;
-import java.util.concurrent.TimeUnit;
-
 /**
  * Represents a NATS subscription.
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface Subscription extends Closeable, Iterable<Message> {
+public interface Subscription extends AutoCloseable, Iterable<Message> {
 
 	/**
-	 * Unsubscribes the current subscription and closes any {@link SubscriptionIterator}s associated with this
-	 * subscription.
+	 * Closes this subscription. Any {@link MessageHandler} objects associated with this request will no longer receive
+	 * messages for this subscription after this method is invoked. All {@link MessageIterator} objects created by
+	 * this subscription will also be closed.
 	 */
 	@Override
 	void close();
 
 	/**
-	 * Returns this subscription's Nats subject.
+	 * Returns this subscription's NATS subject.
 	 *
-	 * @return this subscription's Nats subject
+	 * @return this subscription's NATS subject
 	 */
 	String getSubject();
 
 	/**
-	 * Adds the specified message handler to this subscription.  The message handler is invoked when a message arrives
-	 * for this subscription.
+	 * Returns the number of messages this subscription has received.
 	 *
-	 * @param messageHandler the message handler that is invoked when a message arrives
-	 * @return a handler registration
-	 */
-
-	HandlerRegistration addMessageHandler(MessageHandler messageHandler);
-
-	/**
-	 * Returns the number of messages this handler has received.
-	 *
-	 * @return the number of messages this handler has received.
+	 * @return the number of messages this subscription has received.
 	 */
 	int getReceivedMessages();
 
 	/**
-	 * Returns the maximum number of messages this subscription will received before closing or {@code null} if there
-	 * is no limit specified.
+	 * Returns the maximum number of messages this subscription will receive before being closed automatically.
 	 *
-	 * @return the maximum number of messages this subscription will received before closing or {@code null} if there
-	 *         is no limit specified
+	 * @return the maximum number of messages this subscription will receive or {@code null} if no maximum was specified.
 	 */
 	Integer getMaxMessages();
 
@@ -76,7 +60,7 @@ public interface Subscription extends Closeable, Iterable<Message> {
 	String getQueueGroup();
 
 	/**
-	 * Creates a {@link SubscriptionIterator} that can be used for fetching messages from this subscription in a
+	 * Creates a {@link MessageIterator} that can be used for fetching messages from this subscription in a
 	 * blocking manner. Because {@code Subscription} implements the {@link Iterable} interface, a subscription can be
 	 * used in a Java for loop. For example:
 	 * <p/>
@@ -88,18 +72,18 @@ public interface Subscription extends Closeable, Iterable<Message> {
 	 * <p/>
 	 * The for loop may terminate with an exception when the subscription is closed.
 	 *
-	 * @return a {@link SubscriptionIterator}
+	 * @return a {@link MessageIterator}
 	 */
 	@Override
-	SubscriptionIterator iterator();
+	MessageIterator iterator();
 
 	/**
-	 * Automatically closes the subscription after the specified amount of time.
+	 * Registers a {@link MessageHandler} instance with this subscription that will be invoked every time the
+	 * subscription receives a message.
 	 *
-	 * @param time the time to wait until closing the subscription
-	 * @param unit the unit for {@code time}
-	 * @return a handle to the timeout.
+	 * @param messageHandler the message handler that is invoked when a message arrives
+	 * @return a handler registration
 	 */
-	SubscriptionTimeout timeout(long time, TimeUnit unit);
+	HandlerRegistration addMessageHandler(MessageHandler messageHandler);
 
 }

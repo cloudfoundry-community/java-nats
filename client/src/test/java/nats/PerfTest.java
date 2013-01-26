@@ -18,10 +18,10 @@ package nats;
 
 import nats.client.Message;
 import nats.client.MessageHandler;
+import nats.client.MessageIterator;
 import nats.client.Nats;
 import nats.client.NatsConnector;
 import nats.client.Subscription;
-import nats.client.SubscriptionIterator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,7 +89,7 @@ public class PerfTest {
 	private static void blockUntilConnected(Collection<Nats> connections) {
 		for (Nats nats : connections) {
 			final Subscription subscription = nats.subscribe("test");
-			final SubscriptionIterator iterator = subscription.iterator();
+			final MessageIterator iterator = subscription.iterator();
 			nats.publish("test", "Have a nice day.");
 			iterator.next();
 			subscription.close();
