@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012,2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,41 +16,30 @@
  */
 package nats.codec;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientPublishMessage implements ClientMessage, ClientRequest {
+public class ClientSubscribeFrame implements ClientFrame {
+
+	private final String id;
 
 	private final String subject;
 
-	private final String replyTo;
+	private final String queueGroup;
 
-	private String body;
-
-	public ClientPublishMessage(String subject, String replyTo) {
-		this(subject, null, replyTo);
-	}
-
-	public ClientPublishMessage(String subject, String body, String replyTo) {
-		// TODO Validate subject, replyTo What is valid?
+	public ClientSubscribeFrame(String id, String subject, String queueGroup) {
+		// TODO Validate subject and queueGroup -- If they have white space it will break the protocol -- What is valid? -- Subject can't be empty. subject also has wild cards which must be valid.
+		this.id = id;
+		this.queueGroup = queueGroup;
 		this.subject = subject;
-		this.replyTo = replyTo;
-		setBody(body);
 	}
 
-	public String getBody() {
-		return body;
+	public String getId() {
+		return id;
 	}
 
-	public void setBody(String body) {
-		this.body = body;
-	}
-
-	public String getReplyTo() {
-		return replyTo;
+	public String getQueueGroup() {
+		return queueGroup;
 	}
 
 	public String getSubject() {

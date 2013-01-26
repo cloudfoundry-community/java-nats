@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,33 +16,11 @@
  */
 package nats.codec;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientUnsubscribeMessage implements ClientMessage, ClientRequest {
+public class ServerOkFrame implements ServerFrame {
 
-	private final String id;
-
-	private final Integer maxMessages;
-
-	public ClientUnsubscribeMessage(String id) {
-		this(id, null);
-	}
-
-	public ClientUnsubscribeMessage(String id, Integer maxMessages) {
-		this.id = id;
-		this.maxMessages = maxMessages;
-	}
-
-	public String getId() {
-		return id;
-	}
-
-	public Integer getMaxMessages() {
-		return maxMessages;
-	}
+	public static final ServerOkFrame OK_MESSAGE = new ServerOkFrame();
 
 }

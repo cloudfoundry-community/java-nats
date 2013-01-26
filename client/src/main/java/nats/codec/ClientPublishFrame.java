@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,33 +16,26 @@
  */
 package nats.codec;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ServerPublishMessage implements ServerMessage {
+public class ClientPublishFrame implements ClientFrame {
 
-	private final String id;
 	private final String subject;
-	private final String queueGroup;
-	private final String replyTo;
-	private String body;
 
-	public ServerPublishMessage(String id, String subject, String queueGroup, String replyTo) {
-		this.id = id;
+	private final String replyTo;
+
+	private final String body;
+
+	public ClientPublishFrame(String subject, String body, String replyTo) {
+		// TODO Validate subject, replyTo What is valid?
 		this.subject = subject;
-		this.queueGroup = queueGroup;
+		this.body = body;
 		this.replyTo = replyTo;
 	}
 
-	public String getId() {
-		return id;
-	}
-
-	public String getQueueGroup() {
-		return queueGroup;
+	public String getBody() {
+		return body;
 	}
 
 	public String getReplyTo() {
@@ -51,14 +44,6 @@ public class ServerPublishMessage implements ServerMessage {
 
 	public String getSubject() {
 		return subject;
-	}
-
-	public String getBody() {
-		return body;
-	}
-
-	public void setBody(String body) {
-		this.body = body;
 	}
 
 }

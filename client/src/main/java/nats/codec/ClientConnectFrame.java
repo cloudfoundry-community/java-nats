@@ -17,9 +17,18 @@
 package nats.codec;
 
 /**
- * Indicates that this client message will acked with an +OK or -ERR response.
- *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface ClientRequest {
+public class ClientConnectFrame implements ClientFrame {
+
+	private final ConnectBody body;
+
+	public ClientConnectFrame(ConnectBody body) {
+		this.body = body;
+	}
+
+	public ConnectBody getBody() {
+		return body;
+	}
+
 }

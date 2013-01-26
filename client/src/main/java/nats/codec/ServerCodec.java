@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012, 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -24,6 +24,6 @@ import io.netty.channel.CombinedChannelHandler;
 public class ServerCodec extends CombinedChannelHandler {
 
 	public ServerCodec() {
-		init(new ClientMessageDecoder(), new ServerMessageEncoder());
+		init(new ClientFrameDecoder(), new ServerFrameEncoder());
 	}
 }

@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012,2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -19,6 +19,27 @@ package nats.codec;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public interface ClientMessage extends NatsMessage {
+public class ClientUnsubscribeFrame implements ClientFrame {
+
+	private final String id;
+
+	private final Integer maxMessages;
+
+	public ClientUnsubscribeFrame(String id) {
+		this(id, null);
+	}
+
+	public ClientUnsubscribeFrame(String id, Integer maxMessages) {
+		this.id = id;
+		this.maxMessages = maxMessages;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public Integer getMaxMessages() {
+		return maxMessages;
+	}
 
 }

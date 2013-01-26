@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,13 +16,10 @@
  */
 package nats.codec;
 
-import io.netty.buffer.ByteBuf;
-
 /**
+ * Classes of this type are NATS frames to be encoded or decoded between a client and server.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ServerOkMessage implements ServerMessage {
-
-	public static final ServerOkMessage OK_MESSAGE = new ServerOkMessage();
-
+public interface NatsFrame {
 }

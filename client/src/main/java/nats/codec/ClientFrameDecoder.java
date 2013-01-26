@@ -1,11 +1,29 @@
+/*
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ */
 package nats.codec;
+
+import io.netty.buffer.ByteBuf;
 
 import java.util.regex.Pattern;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientMessageDecoder extends AbstractMessageDecoder<ClientMessage> {
+public class ClientFrameDecoder extends AbstractFrameDecoder<ClientFrame> {
 
 	public static final String CMD_CONNECT = "CONNECT";
 	public static final String CMD_PUBLISH = "PUB";
@@ -15,25 +33,23 @@ public class ClientMessageDecoder extends AbstractMessageDecoder<ClientMessage> 
 	private static final Pattern PING_PATTERN = Pattern.compile("^PING", Pattern.CASE_INSENSITIVE);
 	private static final Pattern PONG_PATTERN = Pattern.compile("^PONG", Pattern.CASE_INSENSITIVE);
 
-	private ClientPublishMessage message;
-
 	@Override
-	protected ClientMessage decodeCommand(String command) {
+	protected ClientFrame decodeCommand(String command, ByteBuf in) {
 		// CONNECT
 		if (command.startsWith(CMD_CONNECT)) {
 			final String body = command.substring(CMD_CONNECT.length()).trim();
 			final ConnectBody connectBody = ConnectBody.parse(body);
-			return new ClientConnectMessage(connectBody);
+			return new ClientConnectFrame(connectBody);
 		}
 
 		// PING
 		if (PING_PATTERN.matcher(command).matches()) {
-			return ClientPingMessage.PING;
+			return ClientPingFrame.PING;
 		}
 
 		// PONG
 		if (PONG_PATTERN.matcher(command).matches()) {
-			return ClientPongMessage.PONG;
+			return ClientPongFrame.PONG;
 		}
 
 		// PUB
@@ -46,9 +62,10 @@ public class ClientMessageDecoder extends AbstractMessageDecoder<ClientMessage> 
 				final String subject = parts[0];
 				final int length = Integer.parseInt(parts[parts.length - 1]);
 				final String replyTo = (parts.length == 3) ? parts[1] : null;
-				this.message = new ClientPublishMessage(subject, replyTo);
-				expectBody(length);
-				return null;
+				final ByteBuf bodyBytes = in.readBytes(length);
+				in.skipBytes(ByteBufUtil.CRLF.length);
+				final String body = new String(bodyBytes.array());
+				return new ClientPublishFrame(subject, body, replyTo);
 			} catch (NumberFormatException e) {
 				throw new NatsDecodingException(command);
 			}
@@ -63,7 +80,7 @@ public class ClientMessageDecoder extends AbstractMessageDecoder<ClientMessage> 
 			final String subject = parts[0];
 			final String id = parts[parts.length - 1];
 			final String queueGroup = (parts.length == 3) ? parts[1] : null;
-			return new ClientSubscribeMessage(id, subject, queueGroup);
+			return new ClientSubscribeFrame(id, subject, queueGroup);
 		}
 
 		// UNSUB
@@ -74,16 +91,10 @@ public class ClientMessageDecoder extends AbstractMessageDecoder<ClientMessage> 
 			}
 			final String id = parts[0];
 			final Integer maxMessages = (parts.length == 2) ? Integer.valueOf(parts[1]) : null;
-			return new ClientUnsubscribeMessage(id, maxMessages);
+			return new ClientUnsubscribeFrame(id, maxMessages);
 		}
 
 		throw new NatsDecodingException(command);
-	}
-
-	@Override
-	protected ClientMessage handleBody(String body) {
-		message.setBody(body);
-		return message;
 	}
 
 }

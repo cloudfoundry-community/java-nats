@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,128 +16,46 @@
  */
 package nats.codec;
 
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundMessageHandlerAdapter;
-import io.netty.channel.ChannelOutboundMessageHandlerAdapter;
-import io.netty.channel.CombinedChannelHandler;
-import nats.NatsException;
-
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public abstract class AbstractClientInboundMessageHandlerAdapter extends CombinedChannelHandler {
-
-	protected AbstractClientInboundMessageHandlerAdapter() {
-		init(new ChannelInboundMessageHandlerAdapter<ServerMessage>() {
-			@Override
-			public void messageReceived(ChannelHandlerContext ctx, ServerMessage msg) throws Exception {
-			}
-		}, new ChannelOutboundMessageHandlerAdapter<ClientMessage>() {
-
-			@Override
-			public void flush(ChannelHandlerContext ctx, ChannelFuture future) throws Exception {
-			}
-		}
-		);
-	}
-
-	// Access must be synchronized on self.
-	private final Queue<ClientPingMessage> pingQueue = new LinkedList<ClientPingMessage>();
-
-	// Access must be synchronized on self.
-	private final Queue<ClientRequest> requestQueue = new LinkedList<ClientRequest>();
+public abstract class AbstractClientInboundMessageHandlerAdapter extends ChannelInboundMessageHandlerAdapter<ServerFrame> {
 
 	@Override
-	public void messageReceived(ChannelHandlerContext ctx, ClientMessage message) throws Exception {
-		if (message instanceof ServerPublishMessage) {
-			publishedMessage(ctx, (ServerPublishMessage) message);
-		} else if (message instanceof ServerPingMessage) {
-			serverPing(ctx);
-		} else if (message instanceof ServerOkMessage) {
-			okResponse(ctx, pollRequestQueue(), (ServerOkMessage) message);
-		} else if (message instanceof ServerErrorMessage) {
-			errorResponse(ctx, pollRequestQueue(), (ServerErrorMessage) message);
-		} else if (message instanceof ServerPongMessage) {
-			pongResponse(ctx, pollPingQueue(), (ServerPongMessage) message);
-		} else if (message instanceof ServerInfoMessage) {
-			serverInfo(ctx, (ServerInfoMessage) message);
+	public void messageReceived(ChannelHandlerContext context, ServerFrame frame) throws Exception {
+		if (frame instanceof ServerPublishFrame) {
+			publishedMessage(context, (ServerPublishFrame) frame);
+		} else if (frame instanceof ServerPingFrame) {
+			serverPing(context);
+		} else if (frame instanceof ServerOkFrame) {
+			okResponse(context, (ServerOkFrame) frame);
+		} else if (frame instanceof ServerErrorFrame) {
+			errorResponse(context, (ServerErrorFrame) frame);
+		} else if (frame instanceof ServerPongFrame) {
+			pongResponse(context, (ServerPongFrame) frame);
+		} else if (frame instanceof ServerInfoFrame) {
+			serverInfo(context, (ServerInfoFrame) frame);
 		} else {
-			throw new Error("Received a server response of an unknown type: " + e.getMessage().getClass().getName());
+			throw new Error("Received a server response of an unknown type: " + frame.getClass().getName());
 		}
 	}
 
+	protected abstract void publishedMessage(ChannelHandlerContext context, ServerPublishFrame frame);
 
-
-	@Override
-	public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-		final Object message = e.getMessage();
-		if (message instanceof ClientPingMessage) {
-			synchronized (pingQueue) {
-				pingQueue.add((ClientPingMessage) message);
-			}
-		} else if (message instanceof ClientRequest) {
-			synchronized (requestQueue) {
-				requestQueue.add((ClientRequest) message);
-			}
-		}
-		super.writeRequested(ctx, e);
+	protected void serverPing(ChannelHandlerContext context) {
+		context.write(ClientPongFrame.PONG);
 	}
 
-	@Override
-	public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-		synchronized (pingQueue) {
-			handleOrphanedPings(ctx, pingQueue);
-			pingQueue.clear();
-		}
-		synchronized (requestQueue) {
-			handleOrphanedRequests(ctx, requestQueue);
-			requestQueue.clear();
-		}
-	}
+	protected abstract void pongResponse(ChannelHandlerContext context, ServerPongFrame pongFrame);
 
-	protected abstract void handleOrphanedPings(ChannelHandlerContext ctx, Collection<ClientPingMessage> pings);
+	protected abstract void serverInfo(ChannelHandlerContext context, ServerInfoFrame infoFrame);
 
-	protected abstract void handleOrphanedRequests(ChannelHandlerContext ctx, Collection<ClientRequest> requests);
+	// TODO Determine that this only gets called in response to the CONNECT
+	protected abstract void okResponse(ChannelHandlerContext context, ServerOkFrame okFrame);
 
-	protected abstract void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message);
-
-	protected void serverPing(ChannelHandlerContext ctx) {
-		ctx.getChannel().write(ClientPongMessage.PONG);
-	}
-
-	protected abstract void pongResponse(ChannelHandlerContext ctx, ClientPingMessage pingMessage, ServerPongMessage pongMessage);
-
-	protected abstract void serverInfo(ChannelHandlerContext ctx, ServerInfoMessage infoMessage);
-
-	protected abstract void okResponse(ChannelHandlerContext ctx, ClientRequest request, ServerOkMessage okMessage);
-
-	protected abstract void errorResponse(ChannelHandlerContext ctx, ClientRequest request, ServerErrorMessage errorMessage);
-
-	private ClientRequest pollRequestQueue() {
-		final ClientRequest request;
-		synchronized (requestQueue) {
-			request = requestQueue.poll();
-		}
-		if (request == null) {
-			throw new NatsException("Received a response from the NATS server for an unknown request.");
-		}
-		return request;
-	}
-
-	private ClientPingMessage pollPingQueue() {
-		final ClientPingMessage ping;
-		synchronized (pingQueue) {
-			ping = pingQueue.poll();
-		}
-		if (ping == null) {
-			throw new NatsException("Received a pong from the NATS server for an unknown ping.");
-		}
-		return ping;
-	}
+	protected abstract void errorResponse(ChannelHandlerContext ctx, ServerErrorFrame errorFrame);
 
 }

@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,75 +16,54 @@
  */
 package nats.codec;
 
-import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
-import org.testng.Assert;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.embedded.EmbeddedByteChannel;
+import static org.testng.Assert.*;
 import org.testng.annotations.Test;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodecTest extends AbstractDecoderTest<ServerMessage> {
+public class ClientCodecTest {
 
 	@Test
 	public void serverError() throws Exception {
 		final String errorMessage = "'You are doing it wrong'";
-		decoderTest("-ERR " + errorMessage + "\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerErrorMessage errorMesage = (ServerErrorMessage) decoderEmbedder.poll();
-				Assert.assertEquals(errorMesage.getErrorMessage(), errorMessage);
-			}
-		});
+		final ServerErrorFrame errorFrame = (ServerErrorFrame) clientDecode("-ERR " + errorMessage + "\r\n");
+
+		assertNotNull(errorFrame);
+		assertEquals(errorFrame.getErrorMessage(), errorMessage);
 	}
 
 	@Test
 	public void serverInfo() throws Exception {
 		final String jsonPayload = "{\"server_id\":\"8d8222a15560538b92751995be\",\"host\":\"0.0.0.0\",\"port\":4222,\"version\":\"0.4.22\",\"auth_required\":false,\"ssl_required\":false,\"max_payload\":1048576}";
-		decoderTest("INFO " + jsonPayload + "\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerInfoMessage infoMessage = (ServerInfoMessage) decoderEmbedder.poll();
-				Assert.assertEquals(infoMessage.getInfo(), jsonPayload);
-			}
-		});
+		final ServerInfoFrame infoFrame = (ServerInfoFrame) clientDecode("INFO " + jsonPayload + "\r\n");
+
+		assertNotNull(infoFrame);
+		assertEquals(infoFrame.getInfo(), jsonPayload);
 	}
 
 	@Test
-	public void serverOk() throws Exception {
-		decoderTest("+OK\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerOkMessage okMessage = (ServerOkMessage) decoderEmbedder.poll();
-				Assert.assertNotNull(okMessage);
-			}
-		});
+	public void serverOK() throws Exception {
+		final ServerOkFrame okFrame = (ServerOkFrame) clientDecode("+OK\r\n");
+
+		assertNotNull(okFrame);
+		assertSame(okFrame, ServerOkFrame.OK_MESSAGE);
 	}
 
 	@Test
 	public void serverPing() throws Exception {
-		decoderTest("PING\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerPingMessage okMessage = (ServerPingMessage) decoderEmbedder.poll();
-				Assert.assertNotNull(okMessage);
-			}
-		});
+		final ServerPingFrame pingFrame = (ServerPingFrame) clientDecode("PING\r\n");
+		assertNotNull(pingFrame);
+		assertSame(pingFrame, ServerPingFrame.PING);
 	}
 
 	@Test
 	public void serverPong() throws Exception {
-		decoderTest("PONG\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerPongMessage okMessage = (ServerPongMessage) decoderEmbedder.poll();
-				Assert.assertNotNull(okMessage);
-			}
-		});
+		final ServerPongFrame pongFrame = (ServerPongFrame) clientDecode("PONG\r\n");
+		assertNotNull(pongFrame);
+		assertSame(pongFrame, ServerPongFrame.PONG);
 	}
 
 	@Test
@@ -92,34 +71,24 @@ public class ClientCodecTest extends AbstractDecoderTest<ServerMessage> {
 		final String subject = "foo.bar";
 		final String id = "1";
 		final String body = "Hi there";
-		decoderTest("MSG " + subject + " " + id + " 8\r\n" + body + "\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerPublishMessage publishMessage = (ServerPublishMessage) decoderEmbedder.poll();
-				Assert.assertEquals(publishMessage.getSubject(), subject);
-				Assert.assertEquals(publishMessage.getId(), id);
-				Assert.assertEquals(publishMessage.getBody(), body);
-				Assert.assertNull(publishMessage.getReplyTo());
-			}
-		});
+		final ServerPublishFrame publishFrame = (ServerPublishFrame) clientDecode("MSG " + subject + " " + id + " " + body.length() + "\r\n" + body + "\r\n");
+		assertNotNull(publishFrame);
+		assertEquals(publishFrame.getSubject(), subject);
+		assertEquals(publishFrame.getId(), id);
+		assertEquals(publishFrame.getBody(), body);
+		assertNull(publishFrame.getReplyTo());
 	}
 
 	@Test
 	public void publishEmptyBody() throws Exception {
 		final String subject = "foo";
 		final String id = "bob";
-		decoderTest("MSG " + subject + " " + id + " 0\r\n\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerPublishMessage publishMessage = (ServerPublishMessage) decoderEmbedder.poll();
-				Assert.assertEquals(publishMessage.getSubject(), subject);
-				Assert.assertEquals(publishMessage.getId(), id);
-				Assert.assertEquals(publishMessage.getBody(), "");
-				Assert.assertNull(publishMessage.getReplyTo());
-			}
-		});
+		final ServerPublishFrame publishFrame = (ServerPublishFrame) clientDecode("MSG " + subject + " " + id + " 0\r\n\r\n");
+		assertNotNull(publishFrame);
+		assertEquals(publishFrame.getSubject(), subject);
+		assertEquals(publishFrame.getId(), id);
+		assertEquals(publishFrame.getBody(), "");
+		assertNull(publishFrame.getReplyTo());
 	}
 
 	@Test
@@ -128,21 +97,18 @@ public class ClientCodecTest extends AbstractDecoderTest<ServerMessage> {
 		final String id = "3";
 		final String replyTo = "reply.subject";
 		final String body = "bar";
-		decoderTest("MSG " + subject + " " + id + " " + replyTo + " 3\r\n" + body + "\r\n", new DecoderAssertions<ServerMessage>() {
-			@Override
-			public void runAssertions(DecoderEmbedder<ServerMessage> decoderEmbedder) throws Exception {
-				Assert.assertEquals(1, decoderEmbedder.size());
-				ServerPublishMessage publishMessage = (ServerPublishMessage) decoderEmbedder.poll();
-				Assert.assertEquals(publishMessage.getSubject(), subject);
-				Assert.assertEquals(publishMessage.getId(), id);
-				Assert.assertEquals(publishMessage.getBody(), body);
-				Assert.assertEquals(publishMessage.getReplyTo(), replyTo);
-			}
-		});
+		final ServerPublishFrame publishFrame = (ServerPublishFrame) clientDecode("MSG " + subject + " " + id + " " + replyTo + " 3\r\n" + body + "\r\n");
+		assertNotNull(publishFrame);
+		assertEquals(publishFrame.getSubject(), subject);
+		assertEquals(publishFrame.getId(), id);
+		assertEquals(publishFrame.getBody(), body);
+		assertEquals(publishFrame.getReplyTo(), replyTo);
 	}
 
-	@Override
-	protected DecoderEmbedder<ServerMessage> createDecoderEmbedder() {
-		return new DecoderEmbedder<ServerMessage>(new OldClientCodec());
+	private ServerFrame clientDecode(String frame) {
+		final EmbeddedByteChannel channel = new EmbeddedByteChannel(new ServerFrameDecoder());
+		channel.writeInbound(Unpooled.wrappedBuffer(frame.getBytes()));
+		return (ServerFrame) channel.readInbound();
 	}
+
 }

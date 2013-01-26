@@ -19,8 +19,17 @@ package nats.codec;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientPingMessage implements ClientMessage {
+public class ServerInfoFrame implements ServerFrame {
 
-	public static ClientPingMessage PING = new ClientPingMessage();
+	// TODO Make an InfoBody class for going back and forth between the INFO json payload.
+	private final String info;
+
+	public ServerInfoFrame(String info) {
+		this.info = info;
+	}
+
+	public String getInfo() {
+		return info;
+	}
 
 }

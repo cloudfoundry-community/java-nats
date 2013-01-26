@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,23 +16,37 @@
  */
 package nats.codec;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ServerInfoMessage implements ServerMessage {
+public class ServerPublishFrame implements ServerFrame {
 
-	// TODO Make an InfoBody class for going back and forth between the INFO json payload.
-	private final String info;
+	private final String id;
+	private final String subject;
+	private final String replyTo;
+	private final String body;
 
-	public ServerInfoMessage(String info) {
-		this.info = info;
+	public ServerPublishFrame(String id, String subject, String replyTo, String body) {
+		this.id = id;
+		this.subject = subject;
+		this.replyTo = replyTo;
+		this.body = body;
 	}
 
-	public String getInfo() {
-		return info;
+	public String getId() {
+		return id;
+	}
+
+	public String getReplyTo() {
+		return replyTo;
+	}
+
+	public String getSubject() {
+		return subject;
+	}
+
+	public String getBody() {
+		return body;
 	}
 
 }
