@@ -93,7 +93,7 @@ class NatsImpl implements Nats {
 	private volatile Channel channel;
 
 	/**
-	 * The {@link org.jboss.netty.util.Timer} used for scheduling server reconnects and scheduling delayed message publishing.
+	 * The {@link org.jboss.netty.util.Timer} used for scheduling server reconnects and scheduling delayed body publishing.
 	 */
 	private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
@@ -113,7 +113,7 @@ class NatsImpl implements Nats {
 
 	/**
 	 * List of servers to try connecting to. This can be manually configured using
-	 * {@link NatsConnector#addHost(java.net.URI)} and gets updated based on server response to CONNECT message.
+	 * {@link NatsConnector#addHost(java.net.URI)} and gets updated based on server response to CONNECT body.
 	 * <p/>
 	 * <p>Must hold monitor #servers to access post creation.
 	 */
@@ -244,7 +244,7 @@ class NatsImpl implements Nats {
 					subscription = subscriptions.get(message.getId());
 				}
 				if (subscription == null) {
-					throw new NatsException("Received a message for an unknown subscription.");
+					throw new NatsException("Received a body for an unknown subscription.");
 				}
 				subscription.onMessage(message.getSubject(), message.getBody(), message.getReplyTo());
 			}
@@ -431,15 +431,15 @@ class NatsImpl implements Nats {
 	}
 
 	@Override
-	public Publication publish(String subject, String message) {
-		return publish(subject, message, null);
+	public Publication publish(String subject, String body) {
+		return publish(subject, body, null);
 	}
 
 	@Override
-	public Publication publish(String subject, String message, String replyTo) {
+	public Publication publish(String subject, String body, String replyTo) {
 		assertNatsOpen();
 
-		DefaultPublication publication = new DefaultPublication(subject, message, replyTo, exceptionHandler);
+		DefaultPublication publication = new DefaultPublication(subject, body, replyTo, exceptionHandler);
 		publish(publication);
 		return publication;
 	}
@@ -493,7 +493,7 @@ class NatsImpl implements Nats {
 					@Override
 					public Publication reply(String message) {
 						if (!hasReply) {
-							throw new NatsException("Message does not have a replyTo address to send the message to.");
+							throw new NatsException("Message does not have a replyTo address to send the body to.");
 						}
 						return publish(replyTo, message);
 
@@ -502,7 +502,7 @@ class NatsImpl implements Nats {
 					@Override
 					public Publication reply(final String message, long delay, TimeUnit unit) {
 						if (!hasReply) {
-							throw new NatsException("Message does not have a replyTo address to send the message to.");
+							throw new NatsException("Message does not have a replyTo address to send the body to.");
 						}
 						final DefaultPublication publication = new DefaultPublication(replyTo, message, null, exceptionHandler);
 						scheduledExecutorService.schedule(new ScheduledPublication() {

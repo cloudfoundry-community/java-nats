@@ -118,6 +118,6 @@ public class DefaultSubscription implements Subscription {
 	}
 
 	protected Message createMessage(String subject, String body, String queueGroup, String replyTo) {
-		return new DefaultMessage(subject, body, queueGroup, replyTo != null);
+		return new DefaultMessage(subject, body, queueGroup, replyTo != null && replyTo.trim().length() > 0);
 	}
 }
