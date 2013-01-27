@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
-class BlockingQueueMessageIterator implements MessageIterator, MessageHandler {
+public class BlockingQueueMessageIterator implements MessageIterator, MessageHandler {
 
 	private static final Message CLOSED = new DefaultMessage(null, null, null, false);
 
