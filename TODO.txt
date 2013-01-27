@@ -1,2 +1,0 @@
-- Release beta
-- Announce beta
