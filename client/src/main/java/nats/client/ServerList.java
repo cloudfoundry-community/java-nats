@@ -37,9 +37,11 @@ class ServerList {
 
 	private final List<Server> servers = new ArrayList<>();
 
-	private final Object lock = new Object();
+	private Server currentServer;
 
 	private Iterator<Server> iterator;
+
+	private final Object lock = new Object();
 
 	public void addServer(URI uri) {
 		final String host;
@@ -101,7 +103,14 @@ class ServerList {
 				Collections.shuffle(activeServers);
 				iterator = activeServers.iterator();
 			}
-			return iterator.next();
+			currentServer = iterator.next();
+			return currentServer;
+		}
+	}
+
+	public Server getCurrentServer() {
+		synchronized (lock) {
+			return currentServer;
 		}
 	}
 

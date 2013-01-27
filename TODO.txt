@@ -1,5 +1,2 @@
-- Fix Spring integration
-- Fix vcap stuff
-- Write some cool vcap debugging tools (DEA spoofer, show components)
 - Release beta
 - Announce beta

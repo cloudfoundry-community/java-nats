@@ -58,7 +58,7 @@ public class NatsAuthenticationTest {
 	@Test
 	public void successfulAuthenticationTest() throws Exception {
 		final BlockingConnectionStateListener listener = new BlockingConnectionStateListener();
-		try (Nats nats = new NatsConnector().addHost("nats://" + USER_NAME + ":" + PASSWORD + "localhost:" + PORT).automaticReconnect(false).addConnectionStateListener(listener).connect()) {
+		try (Nats nats = new NatsConnector().addHost("nats://" + USER_NAME + ":" + PASSWORD + "@localhost:" + PORT).automaticReconnect(false).addConnectionStateListener(listener).connect()) {
 			listener.awaitReady();
 			Assert.assertTrue(nats.isConnected());
 		}

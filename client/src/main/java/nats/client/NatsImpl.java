@@ -166,8 +166,6 @@ class NatsImpl implements Nats {
 						channel = future.channel();
 						if (closed) {
 							channel.close();
-						} else {
-							channel.write(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false)));
 						}
 					}
 				} else {
@@ -431,27 +429,34 @@ class NatsImpl implements Nats {
 				@Override
 				protected void serverInfo(ChannelHandlerContext context, ServerInfoFrame infoFrame) {
 					// TODO Parse info body for alternative servers to connect to as soon as NATS' clustering support starts sending this.
+					final ServerList.Server server = serverList.getCurrentServer();
+					context.write(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false))).addListener(new ChannelFutureListener() {
+						@Override
+						public void operationComplete(ChannelFuture future) throws Exception {
+							LOGGER.debug("Server ready");
+							synchronized (lock) {
+								if (serverReady) {
+									// TODO Remove this sanity check after we've done a lot more testing.
+									throw new IllegalStateException("We shouldn't be receiving a +OK frame.");
+								}
+								serverReady = true;
+								// Resubscribe when the channel opens.
+								for (NatsSubscription subscription : subscriptions.values()) {
+									writeSubscription(subscription);
+								}
+							// Resend pending publish commands.
+								for (ClientPublishFrame publish : publishQueue) {
+									future.channel().write(publish);
+								}
+							}
+							fireStateChange(ConnectionStateListener.State.SERVERY_READY);
+						}
+					});
 				}
 
 				@Override
 				protected void okResponse(ChannelHandlerContext context, ServerOkFrame okFrame) {
-					LOGGER.debug("Server ready");
-					synchronized (lock) {
-						if (serverReady) {
-							// TODO Remove this sanity check after we've done a lot more testing.
-							throw new IllegalStateException("We shouldn't be receiving a +OK frame.");
-						}
-						serverReady = true;
-						// Resubscribe when the channel opens.
-						for (NatsSubscription subscription : subscriptions.values()) {
-							writeSubscription(subscription);
-						}
-					// Resend pending publish commands.
-						for (ClientPublishFrame publish : publishQueue) {
-							context.write(publish);
-						}
-					}
-					fireStateChange(ConnectionStateListener.State.SERVERY_READY);
+					// Ignore -- we're not using verbose so we won't get any
 				}
 
 				@Override
