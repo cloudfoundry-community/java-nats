@@ -405,7 +405,6 @@ class NatsImpl implements Nats {
 
 		@Override
 		public void initChannel(SocketChannel channel) throws Exception {
-			// TODO Add debug logging to codec
 			final ChannelPipeline pipeline = channel.pipeline();
 			pipeline.addLast("codec", new ClientCodec(maxFrameSize));
 			pipeline.addLast("handler", new AbstractClientInboundMessageHandlerAdapter() {
@@ -435,10 +434,6 @@ class NatsImpl implements Nats {
 						public void operationComplete(ChannelFuture future) throws Exception {
 							LOGGER.debug("Server ready");
 							synchronized (lock) {
-								if (serverReady) {
-									// TODO Remove this sanity check after we've done a lot more testing.
-									throw new IllegalStateException("We shouldn't be receiving a +OK frame.");
-								}
 								serverReady = true;
 								// Resubscribe when the channel opens.
 								for (NatsSubscription subscription : subscriptions.values()) {
