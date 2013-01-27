@@ -81,6 +81,7 @@ public class DefaultSubscription implements Subscription {
 		synchronized (iterators) {
 			iterators.add(iterator);
 		}
+		addMessageHandler(iterator);
 		return iterator;
 	}
 
