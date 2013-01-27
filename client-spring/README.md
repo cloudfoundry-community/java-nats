@@ -13,7 +13,7 @@ the following example:
         xmlns:nats="http://mheath.github.com/jnats/schema/spring/nats"
         xsi:schemaLocation="
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
-        http://mheath.github.com/jnats/schema/spring/nats http://mheath.github.com/jnats/schema/spring/nats-0.3.xsd
+        http://mheath.github.com/jnats/schema/spring/nats http://mheath.github.com/jnats/schema/spring/nats-0.5.xsd
         "
         >
 ...
@@ -28,7 +28,7 @@ You can now configure a NATS client bean doing the following:
 </nats:nats>
 ```
 
-This creates a nats.client.Nats Spring bean with the id "nats".
+This creates a Spring bean with the id "nats" of type `nats.client.Nats`.
 
 ## Annotation support
 
@@ -67,4 +67,4 @@ To configure annotation support, simply add the following to your Spring context
 <nats:annotation-config />
 ```
 
-This, of course, assumes you have already configured a NATS client bean.
+This, of course, assumes you have already configured a NATS client in Spring.
