@@ -16,8 +16,8 @@
  */
 package nats.client;
 
+import io.netty.channel.EventLoopGroup;
 import nats.Constants;
-import org.jboss.netty.channel.ChannelFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -27,14 +27,14 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
+// TODO Add support for a connection state listener
 public class NatsConnector {
 	List<URI> hosts = new ArrayList<>();
 	boolean automaticReconnect = true;
-	int maxReconnectAttempts = Constants.DEFAULT_MAX_RECONNECT_ATTEMPTS;
 	long reconnectWaitTime = Constants.DEFAULT_RECONNECT_TIME_WAIT;
 	boolean pedantic = false;
-	ChannelFactory channelFactory;
-	int maxMessageSize = Constants.DEFAULT_MAX_MESSAGE_SIZE;
+	EventLoopGroup eventLoopGroup;
+	int maxFrameSize = Constants.DEFAULT_MAX_FRAME_SIZE;
 
 	/**
 	 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
@@ -74,24 +74,13 @@ public class NatsConnector {
 	}
 
 	/**
-	 * Specifies the Netty {@link ChannelFactory} to use for connecting to the Nats server(s). (optional)
+	 * Specifies the Netty {@link EventLoopGroup} to use for connecting to the Nats server(s). (optional)
 	 *
-	 * @param channelFactory the Netty {@code ChannelFactory} to use for connecting to the Nats server(s)
+	 * @param eventLoopGroup the Netty {@code ChannelFactory} to use for connecting to the Nats server(s)
 	 * @return this {@code Builder} instance.
 	 */
-	public NatsConnector channelFactory(ChannelFactory channelFactory) {
-		this.channelFactory = channelFactory;
-		return this;
-	}
-
-	/**
-	 * Specifies the maximum number of subsequent connection attempts to make for a given server. (optional)
-	 *
-	 * @param maxReconnectAttempts the maximum number of subsequent connection attempts to make for a given server
-	 * @return this {@code Builder} instance.
-	 */
-	public NatsConnector maxReconnectAttempts(int maxReconnectAttempts) {
-		this.maxReconnectAttempts = maxReconnectAttempts;
+	public NatsConnector eventLoopGroup(EventLoopGroup eventLoopGroup) {
+		this.eventLoopGroup = eventLoopGroup;
 		return this;
 	}
 
@@ -122,11 +111,11 @@ public class NatsConnector {
 	/**
 	 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1MB.
 	 *
-	 * @param maxMessageSize the maximum message size that can be received by the {@code} Nats instance.
+	 * @param maxFrameSize the maximum message size that can be received by the {@code} Nats instance.
 	 * @return this {@code Builder} instance.
 	 */
-	public NatsConnector maxMessageSize(int maxMessageSize) {
-		this.maxMessageSize = maxMessageSize;
+	public NatsConnector maxFrameSize(int maxFrameSize) {
+		this.maxFrameSize = maxFrameSize;
 		return this;
 	}
 

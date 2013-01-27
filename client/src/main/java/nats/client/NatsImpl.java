@@ -16,55 +16,40 @@
  */
 package nats.client;
 
-import nats.Constants;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import nats.NatsException;
-import nats.NatsLogger;
-import nats.NatsServerException;
 import nats.codec.AbstractClientInboundMessageHandlerAdapter;
-import nats.codec.ClientChannelPipelineFactory;
-import nats.codec.ClientConnectMessage;
-import nats.codec.ClientPingMessage;
-import nats.codec.ClientPublishMessage;
-import nats.codec.ClientRequest;
-import nats.codec.ClientSubscribeMessage;
-import nats.codec.ClientUnsubscribeMessage;
+import nats.codec.ClientCodec;
+import nats.codec.ClientConnectFrame;
+import nats.codec.ClientPublishFrame;
+import nats.codec.ClientSubscribeFrame;
 import nats.codec.ConnectBody;
-import nats.codec.NatsDecodingException;
-import nats.codec.ServerErrorMessage;
-import nats.codec.ServerInfoMessage;
-import nats.codec.ServerOkMessage;
-import nats.codec.ServerPongMessage;
-import nats.codec.ServerPublishMessage;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelEvent;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelStateEvent;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.handler.codec.frame.TooLongFrameException;
+import nats.codec.ServerErrorFrame;
+import nats.codec.ServerInfoFrame;
+import nats.codec.ServerOkFrame;
+import nats.codec.ServerPongFrame;
+import nats.codec.ServerPublishFrame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Random;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,83 +58,54 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class NatsImpl implements Nats {
 
-	/**
-	 * The Netty {@link org.jboss.netty.channel.ChannelFactory} used for creating {@link org.jboss.netty.channel.Channel} objects for connecting to and communicating
-	 * with Nats servers.
-	 */
-	private final ChannelFactory channelFactory;
-	/**
-	 * Indicates whether this class created the {@link ChannelFactory}. If this field is false, the
-	 * {@code ChannelFactory} was provided by the user of this class and the channel factory resources will not be
-	 * released when {@link #close()} is invoked.
-	 */
-	private final boolean createdChannelFactory;
+	private static final Logger LOGGER = LoggerFactory.getLogger(NatsImpl.class);
 
-	private final ClientChannelPipelineFactory clientChannelPipelineFactory;
+	private final EventLoopGroup eventLoopGroup;
+
+	private final boolean shutDownEventLoop;
+
 	/**
-	 * The current Netty {@link org.jboss.netty.channel.Channel} used for communicating with the Nats server. This field should never be null
+	 * The current Netty {@link Channel} used for communicating with the NATS server. This field should never be null
 	 * after the constructor has finished.
 	 */
-	private volatile Channel channel;
+	// TODO Audit that closed and lock are accessed with lock
+	// Must hold monitor #lock to access
+	private Channel channel;
 
-	/**
-	 * The {@link org.jboss.netty.util.Timer} used for scheduling server reconnects and scheduling delayed body publishing.
-	 */
-	private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+	// Must hold monitor #lock to access
+	private boolean closed = false;
+
+	private final Object lock = new Object();
+
+	private boolean serverReady = false;
 
 	// Configuration values
 	private final boolean automaticReconnect;
-	private final int maxReconnectAttempts;
 	private final long reconnectTimeWait;
 	private final boolean pedantic;
+	private final int maxFrameSize;
 
-	private final ExceptionHandler exceptionHandler;
-	private final NatsLogger logger;
-
-	/**
-	 * Indicates whether this {@code Nats} instance has been closed or not.
-	 */
-	private volatile boolean closed = false;
-
-	/**
-	 * List of servers to try connecting to. This can be manually configured using
-	 * {@link NatsConnector#addHost(java.net.URI)} and gets updated based on server response to CONNECT body.
-	 * <p/>
-	 * <p>Must hold monitor #servers to access post creation.
-	 */
-	private final List<NatsServer> servers;
-
-	/**
-	 * Used for automatically rotating between available servers. Must hold monitor #servers to access.
-	 */
-	private Iterator<NatsServer> serverIterator;
+	private final ServerList serverList = new ServerList();
 
 	/**
 	 * Holds the publish commands that have been queued up due to the connection being down.
 	 * <p/>
-	 * <p>Must hold monitor #publishQueue to access this queue.
+	 * <p>Must hold monitor #lock to access this queue.
 	 */
-	private final Queue<Publish> publishQueue = new LinkedList<Publish>();
+	private final Queue<ClientPublishFrame> publishQueue = new LinkedList<>();
 
-	// Subscriptions
 	/**
 	 * Holds the list of subscriptions held by this {@code Nats} instance.
 	 * <p/>
-	 * <p>Must hold monitor #subscription to access.
+	 * <p>Must hold monitor #lock to access.
 	 */
-	private final Map<String, NatsSubscription> subscriptions = new HashMap<String, NatsSubscription>();
+	private final Map<String, NatsSubscription> subscriptions = new HashMap<>();
 
 	/**
 	 * Counter used for obtaining subscription ids. Each subscription must have its own unique id that is sent to the
 	 * NATS server to uniquely identify each subscription..
 	 */
 	private final AtomicInteger subscriptionId = new AtomicInteger();
-
-	private final NatsConnectionStatus connectionStatus = new NatsConnectionStatus();
-
-	private final boolean debug;
-
-	private static final Random random = new Random();
 
 	/**
 	 * Generates a random string used for creating a unique string. The {@code request} methods rely on this
@@ -159,298 +115,134 @@ class NatsImpl implements Nats {
 	 */
 	public static String createInbox() {
 		byte[] bytes = new byte[16];
-		synchronized (random) {
-			random.nextBytes(bytes);
-		}
+		ThreadLocalRandom.current().nextBytes(bytes);
 		return "_INBOX." + new BigInteger(bytes).abs().toString(16);
 	}
 
 	NatsImpl(NatsConnector connector) {
-		debug = connector.debug;
-		// Create a default logger if one is not provided.
-		if (connector.logger == null) {
-			if (debug) {
-				this.logger = NatsLogger.DEBUG_LOGGER;
-			} else {
-				this.logger = NatsLogger.DEFAULT_LOGGER;
-			}
-		} else {
-			this.logger = connector.logger;
-		}
-		// Create a default exception handler if one is not provided
-		if (connector.exceptionHandler == null) {
-			this.exceptionHandler = new ExceptionHandler() {
-				@Override
-				public void onException(Throwable t) {
-					logger.log(NatsLogger.Level.ERROR, t);
-				}
-			};
-		} else {
-			this.exceptionHandler = connector.exceptionHandler;
-		}
-		// Set up channel factory
-		createdChannelFactory = connector.channelFactory == null;
-		if (createdChannelFactory) {
-			this.channelFactory = new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool());
-		} else {
-			this.channelFactory = connector.channelFactory;
-		}
-		clientChannelPipelineFactory = new ClientChannelPipelineFactory(connector.maxMessageSize);
+		shutDownEventLoop = connector.eventLoopGroup == null;
+		eventLoopGroup =  shutDownEventLoop ? new NioEventLoopGroup() : connector.eventLoopGroup;
 
 		// Setup server list
-		this.servers = new ArrayList<NatsServer>();
-		for (URI uri : connector.hosts) {
-			this.servers.add(new NatsServer(uri));
-		}
+		serverList.addServers(connector.hosts);
 
 		// Set parameters
 		automaticReconnect = connector.automaticReconnect;
-		maxReconnectAttempts = connector.maxReconnectAttempts;
 		reconnectTimeWait = connector.reconnectWaitTime;
 		pedantic = connector.pedantic;
+		maxFrameSize = connector.maxFrameSize;
 
 		// Start connection to server
 		connect();
 	}
 
-	private Channel createChannel(ChannelFactory channelFactory) {
-		final ChannelPipeline pipeline = clientChannelPipelineFactory.getPipeline();
-		if (debug) {
-			pipeline.addFirst("debugger", new SimpleChannelHandler() {
-				@Override
-				public void handleDownstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-					if (e instanceof MessageEvent) {
-						final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
-						System.out.println("OUTGOING: " + new String(message.array()));
-					}
-					super.handleDownstream(ctx, e);
-				}
-
-				@Override
-				public void handleUpstream(ChannelHandlerContext ctx, ChannelEvent e) throws Exception {
-					if (e instanceof MessageEvent) {
-						final ChannelBuffer message = (ChannelBuffer) ((MessageEvent) e).getMessage();
-						System.out.println("INCOMING: " + new String(message.array()));
-					}
-					super.handleUpstream(ctx, e);
-				}
-			});
-		}
-		pipeline.addLast("handler", new AbstractClientInboundMessageHandlerAdapter() {
-			@Override
-			public void publishedMessage(ChannelHandlerContext ctx, ServerPublishMessage message) {
-				final NatsSubscription subscription;
-				synchronized (subscriptions) {
-					subscription = subscriptions.get(message.getId());
-				}
-				if (subscription == null) {
-					throw new NatsException("Received a body for an unknown subscription.");
-				}
-				subscription.onMessage(message.getSubject(), message.getBody(), message.getReplyTo());
-			}
-
-			@Override
-			public void pongResponse(ChannelHandlerContext ctx, ClientPingMessage pingMessage, ServerPongMessage pongMessage) {
-				// Do nothing, we don't do any pings to respond to a pong.
-			}
-
-			@Override
-			public void serverInfo(ChannelHandlerContext ctx, ServerInfoMessage infoMessage) {
-				// TODO Parse info body for alternative servers to connect to as soon as NATS' clustering support starts sending this.
-			}
-
-			@Override
-			public void okResponse(ChannelHandlerContext ctx, ClientRequest request, ServerOkMessage okMessage) {
-				completePublication(request, null);
-				// Indicates we've successfully connected to a Nats server
-				if (request instanceof ClientConnectMessage) {
-					connectionStatus.setServerReady(true);
-					// Resubscribe when the channel opens.
-					synchronized (subscriptions) {
-						for (NatsSubscription subscription : subscriptions.values()) {
-							writeSubscription(subscription);
-						}
-					}
-					// Resend pending publish commands.
-					synchronized (publishQueue) {
-						for (Publish publish : publishQueue) {
-							ctx.getChannel().write(publish);
-						}
-					}
-				}
-			}
-
-			@Override
-			public void errorResponse(ChannelHandlerContext ctx, ClientRequest request, ServerErrorMessage errorMessage) {
-				final StringBuilder message = new StringBuilder().append("Received error response from server");
-				final String errorText = errorMessage.getErrorMessage();
-				if (errorText != null && errorText.trim().length() > 0) {
-					message.append(": ").append(errorText);
-				}
-				final NatsServerException exception = new NatsServerException(message.toString());
-				completePublication(request, exception);
-				throw exception;
-			}
-
-			@Override
-			protected void handleOrphanedPings(ChannelHandlerContext ctx, Collection<ClientPingMessage> pings) {
-				// Do nothing, we don't do any pinging.
-			}
-
-			@Override
-			protected void handleOrphanedRequests(ChannelHandlerContext ctx, Collection<ClientRequest> requests) {
-				final NatsClosedException closedException = new NatsClosedException();
-				for (ClientRequest request : requests) {
-					completePublication(request, closedException);
-				}
-			}
-
-			@Override
-			public void channelClosed(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-				logger.log(NatsLogger.Level.DEBUG, "Connection closed");
-				super.channelClosed(ctx, e);
-				connectionStatus.channelClosed();
-				if (automaticReconnect) {
-					scheduledExecutorService.schedule(new Runnable() {
-						@Override
-						public void run() {
-							connect();
-						}
-					}, reconnectTimeWait, TimeUnit.MILLISECONDS);
-				}
-			}
-
-			@Override
-			@SuppressWarnings("ThrowableResultOfMethodCallIgnored")
-			public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-				Throwable t = e.getCause();
-				if (t instanceof TooLongFrameException || t instanceof NatsDecodingException) {
-					logger.log(NatsLogger.Level.ERROR, "Closing due to: " + t);
-					close();
-				}
-				exceptionHandler.onException(e.getCause());
-			}
-
-			@Override
-			public void writeRequested(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-				super.writeRequested(ctx, e);
-			}
-		});
-		return channelFactory.newChannel(pipeline);
-	}
-
-	private void completePublication(ClientRequest request, Throwable cause) {
-		if (request instanceof HasPublication) {
-			((HasPublication) request).getPublication().setDone(cause);
-		}
-	}
-
 	private void connect() {
-		NatsServer server = null;
-		synchronized (servers) {
-			while (server == null) {
-				if (serverIterator == null || !serverIterator.hasNext()) {
-					if (servers.size() == 0) {
-						exceptionHandler.onException(new ServerConnectionFailedException("Unable to connect a NATS server."));
-						close();
-						throw new NatsEmptyServerListException();
-					}
-					serverIterator = servers.iterator();
-				}
-				server = serverIterator.next();
-				if (maxReconnectAttempts > 0 && server.getConnectionAttempts() > maxReconnectAttempts) {
-					logger.log(NatsLogger.Level.WARNING, "Exceeded max connection attempts connecting to Nats server " + server.address);
-					exceptionHandler.onException(new ServerReconnectFailed(server.address));
-					serverIterator.remove();
-				}
+		synchronized (lock) {
+			if (closed) {
+				return;
 			}
 		}
-		final NatsServer finalServer = server;
-		channel = createChannel(channelFactory);
-		channel.connect(server.address).addListener(new ChannelFutureListener() {
+		final ServerList.Server server = serverList.nextServer();
+		LOGGER.debug("Attempting to connect to {} with user {}", server.getAddress(), server.getUser());
+		new Bootstrap()
+				.group(eventLoopGroup)
+				.remoteAddress(server.getAddress())
+				.channel(NioSocketChannel.class)
+				.handler(new NatsChannelInitializer())
+				.connect().addListener(new ChannelFutureListener() {
 			@Override
 			public void operationComplete(ChannelFuture future) throws Exception {
-				// If connection is successful, set connection attempts to 0, otherwise increase connection attempts.
 				if (future.isSuccess()) {
-					finalServer.resetConnectionAttempts();
-					channel.write(new ClientConnectMessage(new ConnectBody(finalServer.user, finalServer.password, pedantic, true)));
+					LOGGER.debug("Connection to {} successful", server.getAddress());
+					server.connectionSuccess();
+					synchronized (lock) {
+						channel = future.channel();
+						if (closed) {
+							channel.close();
+						} else {
+							channel.write(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false)));
+						}
+					}
 				} else {
-					finalServer.incConnectionAttempts();
+					LOGGER.warn("Connection to {} failed", server.getAddress());
+					server.connectionFailure();
+					scheduleReconnect();
 				}
 			}
 		});
+	}
+
+	private void scheduleReconnect() {
+		synchronized (lock) {
+			serverReady = false;
+			if (!closed && automaticReconnect) {
+				eventLoopGroup.next().schedule(new Runnable() {
+					@Override
+					public void run() {
+						connect();
+					}
+				}, reconnectTimeWait, TimeUnit.MILLISECONDS);
+			}
+		}
 	}
 
 	@Override
-	public ConnectionStatus getConnectionStatus() {
-		return connectionStatus;
+	public boolean isConnected() {
+		synchronized (lock) {
+			return channel != null && channel.isActive();
+		}
+	}
+
+	@Override
+	public boolean isClosed() {
+		synchronized (lock) {
+			return closed;
+		}
 	}
 
 	@Override
 	public void close() {
-		if (closed) {
-			return;
-		}
-		closed = true;
-		channel.close().addListener(new ChannelFutureListener() {
-			@Override
-			public void operationComplete(ChannelFuture future) throws Exception {
-				cleanupResources();
+		synchronized (lock) {
+			closed = true;
+			serverReady = false;
+			if (channel != null) {
+				channel.close();
 			}
-		});
-	}
-
-	private void cleanupResources() {
-		if (createdChannelFactory) {
-			channelFactory.releaseExternalResources();
-		}
-		final NatsClosedException closedException = new NatsClosedException();
-		final List<Runnable> pendingTasks = scheduledExecutorService.shutdownNow();
-		for (Runnable task : pendingTasks) {
-			if (task instanceof HasPublication) {
-				((HasPublication) task).getPublication().setDone(closedException);
+			if (shutDownEventLoop) {
+				eventLoopGroup.shutdown();
 			}
-		}
-		synchronized (subscriptions) {
 			// We have to make a copy of the subscriptions because calling subscription.close() modifies the subscriptions map.
 			Collection<Subscription> subscriptionsCopy = new ArrayList<Subscription>(subscriptions.values());
 			for (Subscription subscription : subscriptionsCopy) {
 				subscription.close();
 			}
 		}
-		synchronized (publishQueue) {
-			for (Publish publish : publishQueue) {
-				publish.publication.setDone(closedException);
-			}
-		}
 	}
 
 	@Override
-	public Publication publish(String subject) {
-		return publish(subject, "", null);
+	public void publish(String subject) {
+		publish(subject, "", null);
 	}
 
 	@Override
-	public Publication publish(String subject, String body) {
-		return publish(subject, body, null);
+	public void publish(String subject, String body) {
+		publish(subject, body, null);
 	}
 
 	@Override
-	public Publication publish(String subject, String body, String replyTo) {
+	public void publish(String subject, String body, String replyTo) {
 		assertNatsOpen();
 
-		DefaultPublication publication = new DefaultPublication(subject, body, replyTo, exceptionHandler);
-		publish(publication);
-		return publication;
+		final ClientPublishFrame publishFrame = new ClientPublishFrame(subject, body, replyTo);
+		publish(publishFrame);
 	}
 
-	private void publish(DefaultPublication publication) {
-		Publish publishMessage = new Publish(publication);
-		synchronized (publishQueue) {
-			if (connectionStatus.isServerReady()) {
-				channel.write(publishMessage);
+	private void publish(ClientPublishFrame publishFrame) {
+		synchronized (lock) {
+			if (serverReady) {
+				channel.write(publishFrame);
 			} else {
-				publishQueue.add(publishMessage);
+				publishQueue.add(publishFrame);
 			}
 		}
 	}
@@ -471,72 +263,25 @@ class NatsImpl implements Nats {
 	}
 
 	@Override
-	public Subscription subscribe(final String subject, final String queueGroup, final Integer maxMessages) {
+	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages) {
 		assertNatsOpen();
 		final String id = Integer.toString(subscriptionId.incrementAndGet());
-		NatsSubscription subscription = new NatsSubscription(subject, queueGroup, maxMessages) {
-			@Override
-			public void close() {
-				super.close();
-				synchronized (subscriptions) {
-					subscriptions.remove(id);
-				}
-				if (maxMessages == null && !closed) {
-					channel.write(new ClientUnsubscribeMessage(id, maxMessages));
-				}
-			}
+		final NatsSubscription subscription = new NatsSubscription(subject, queueGroup, maxMessages, id);
 
-			@Override
-			protected Message createMessage(String subject, String body, final String replyTo) {
-				final boolean hasReply = replyTo != null && replyTo.trim().length() > 0;
-				return new DefaultMessage(this, subject, body, replyTo) {
-					@Override
-					public Publication reply(String message) {
-						if (!hasReply) {
-							throw new NatsException("Message does not have a replyTo address to send the body to.");
-						}
-						return publish(replyTo, message);
-
-					}
-
-					@Override
-					public Publication reply(final String message, long delay, TimeUnit unit) {
-						if (!hasReply) {
-							throw new NatsException("Message does not have a replyTo address to send the body to.");
-						}
-						final DefaultPublication publication = new DefaultPublication(replyTo, message, null, exceptionHandler);
-						scheduledExecutorService.schedule(new ScheduledPublication() {
-							@Override
-							public void run() {
-								publish(publication);
-							}
-
-							@Override
-							public DefaultPublication getPublication() {
-								return publication;
-							}
-						}, delay, unit);
-						return publication;
-					}
-				};
-			}
-
-			@Override
-			String getId() {
-				return id;
-			}
-		};
-
-		synchronized (subscriptions) {
+		synchronized (lock) {
 			subscriptions.put(id, subscription);
+			if (serverReady) {
+				writeSubscription(subscription);
+			}
 		}
-		writeSubscription(subscription);
 		return subscription;
 	}
 
 	private void writeSubscription(NatsSubscription subscription) {
-		if (connectionStatus.isServerReady()) {
-			channel.write(new ClientSubscribeMessage(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
+		synchronized (lock) {
+			if (serverReady) {
+				channel.write(new ClientSubscribeFrame(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
+			}
 		}
 	}
 
@@ -551,16 +296,37 @@ class NatsImpl implements Nats {
 	}
 
 	@Override
-	public Request request(String subject, String message, Integer maxReplies, MessageHandler... messageHandlers) {
+	public Request request(final String subject, String message, final Integer maxReplies, MessageHandler... messageHandlers) {
 		assertNatsOpen();
 		final String inbox = createInbox();
 		final Subscription subscription = subscribe(inbox, maxReplies);
 		for (MessageHandler handler : messageHandlers) {
 			subscription.addMessageHandler(handler);
 		}
-		final DefaultPublication publication = new DefaultPublication(subject, message, inbox, exceptionHandler);
-		publish(publication);
-		return new DefaultRequest(subscription, publication);
+
+		final ClientPublishFrame publishFrame = new ClientPublishFrame(subject, message, inbox);
+		publish(publishFrame);
+		return new Request() {
+			@Override
+			public void close() {
+				subscription.close();
+			}
+
+			@Override
+			public String getSubject() {
+				return subject;
+			}
+
+			@Override
+			public int getReceivedReplies() {
+				return subscription.getReceivedMessages();
+			}
+
+			@Override
+			public Integer getMaxReplies() {
+				return maxReplies;
+			}
+		};
 	}
 
 	private void assertNatsOpen() {
@@ -569,153 +335,84 @@ class NatsImpl implements Nats {
 		}
 	}
 
-	private static class NatsServer {
-		private final SocketAddress address;
-		private final String user;
-		private final String password;
+	private class NatsSubscription extends DefaultSubscription {
+		final String id;
+		protected NatsSubscription(String subject, String queueGroup, Integer maxMessages, String id) {
+			super(subject, queueGroup, maxMessages);
+			this.id = id;
+		}
 
-		/**
-		 * Access must be synchronized on NatsServer instance.
-		 */
-		private int connectionAttempts = 0;
+		String getId() {
+			return id;
+		}
+	}
 
-		public NatsServer(URI uri) {
-			final String host;
-			final int port;
-			if (uri.getHost() == null) {
-				host = Constants.DEFAULT_HOST;
-			} else {
-				host = uri.getHost();
-			}
-			if (uri.getPort() > 0) {
-				port = uri.getPort();
-			} else {
-				port = Constants.DEFAULT_PORT;
-			}
-			this.address = new InetSocketAddress(host, port);
-			String user = null;
-			String password = null;
-			if (uri.getUserInfo() != null) {
-				final String userInfo = uri.getUserInfo();
-				final String[] parts = userInfo.split(":");
-				if (parts.length >= 1) {
-					user = parts[0];
-					if (parts.length >= 2) {
-						password = parts[1];
+	private class NatsChannelInitializer extends ChannelInitializer<SocketChannel> {
+
+		@Override
+		public void initChannel(SocketChannel ch) throws Exception {
+			// TODO Add debug logging to codec
+			final ChannelPipeline pipeline = channel.pipeline();
+			pipeline.addLast("codec", new ClientCodec(maxFrameSize));
+			pipeline.addLast("handler", new AbstractClientInboundMessageHandlerAdapter() {
+				@Override
+				protected void publishedMessage(ChannelHandlerContext context, ServerPublishFrame frame) {
+					final NatsSubscription subscription;
+					synchronized (lock) {
+						subscription = subscriptions.get(frame.getId());
+					}
+					if (subscription == null) {
+						throw new NatsException("Received a body for an unknown subscription.");
+					}
+					subscription.onMessage(frame.getSubject(), frame.getBody(), frame.getReplyTo());
+				}
+
+				@Override
+				protected void pongResponse(ChannelHandlerContext context, ServerPongFrame pongFrame) {
+					// Ignore
+				}
+
+				@Override
+				protected void serverInfo(ChannelHandlerContext context, ServerInfoFrame infoFrame) {
+					// TODO Parse info body for alternative servers to connect to as soon as NATS' clustering support starts sending this.
+				}
+
+				@Override
+				protected void okResponse(ChannelHandlerContext context, ServerOkFrame okFrame) {
+					synchronized (lock) {
+					// Resubscribe when the channel opens.
+						for (NatsSubscription subscription : subscriptions.values()) {
+							writeSubscription(subscription);
+						}
+					// Resend pending publish commands.
+						for (ClientPublishFrame publish : publishQueue) {
+							context.write(publish);
+						}
 					}
 				}
-			}
-			this.user = user;
-			this.password = password;
-		}
 
-		public long getConnectionAttempts() {
-			synchronized (this) {
-				return connectionAttempts;
-			}
-		}
-
-		public int incConnectionAttempts() {
-			synchronized (this) {
-				return ++connectionAttempts;
-			}
-		}
-
-		public void resetConnectionAttempts() {
-			synchronized (this) {
-				connectionAttempts = 0;
-			}
-		}
-
-	}
-
-	private abstract class NatsSubscription extends DefaultSubscription {
-		protected NatsSubscription(String subject, String queueGroup, Integer maxMessages) {
-			super(subject, queueGroup, maxMessages, scheduledExecutorService, exceptionHandler);
-		}
-
-		abstract String getId();
-	}
-
-	private static interface HasPublication {
-		DefaultPublication getPublication();
-	}
-
-	private static interface ScheduledPublication extends Runnable, HasPublication {
-	}
-
-	private static class Publish extends ClientPublishMessage implements HasPublication {
-		private final DefaultPublication publication;
-
-		public Publish(DefaultPublication publication) {
-			super(publication.getSubject(), publication.getMessage(), publication.getReplyTo());
-			this.publication = publication;
-		}
-
-		@Override
-		public DefaultPublication getPublication() {
-			return publication;
-		}
-	}
-
-	private class NatsConnectionStatus implements ConnectionStatus {
-
-		private volatile boolean serverReady = false;
-		private final Object serverReadyMonitor = new Object();
-		private final Object connectionClosedMonitor = new Object();
-
-		@Override
-		public boolean isConnected() {
-			return channel.isConnected();
-		}
-
-		@Override
-		public boolean isServerReady() {
-			return serverReady;
-		}
-
-		@Override
-		public boolean awaitConnectionClose(long time, TimeUnit unit) throws InterruptedException {
-			if (channel.isConnected()) {
-				synchronized (connectionClosedMonitor) {
-					connectionClosedMonitor.wait(unit.toMillis(time));
+				@Override
+				protected void errorResponse(ChannelHandlerContext ctx, ServerErrorFrame errorFrame) {
+					throw new NatsException("Sever error: " + errorFrame.getErrorMessage());
 				}
-			}
-			return !channel.isConnected();
-		}
 
-		@Override
-		public boolean awaitServerReady(long time, TimeUnit unit) throws InterruptedException {
-			synchronized (serverReadyMonitor) {
-				serverReadyMonitor.wait(unit.toMillis(time));
-			}
-			return serverReady;
-		}
-
-		@Override
-		public SocketAddress getLocalAddress() {
-			return channel.getLocalAddress();
-		}
-
-		@Override
-		public SocketAddress getRemoteAddress() {
-			return channel.getRemoteAddress();
-		}
-
-		public void setServerReady(boolean ready) {
-			this.serverReady = ready;
-			if (serverReady) {
-				synchronized (serverReadyMonitor) {
-					serverReadyMonitor.notifyAll();
+				@Override
+				public void channelActive(ChannelHandlerContext ctx) throws Exception {
+					// TODO Fire connection state changed
 				}
-			}
-		}
 
-		public void channelClosed() {
-			setServerReady(false);
-			synchronized (connectionClosedMonitor) {
-				connectionClosedMonitor.notifyAll();
-			}
+				@Override
+				public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+					// TODO Fire connection state changed
+					// TODO Change flag to indicate that the server is not ready
+					scheduleReconnect();
+				}
+
+				@Override
+				public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
+					LOGGER.error("Error", cause);
+				}
+			});
 		}
 	}
 }
