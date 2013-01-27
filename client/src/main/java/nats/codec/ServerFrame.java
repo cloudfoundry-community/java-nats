@@ -16,14 +16,9 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+public interface ServerFrame extends NatsFrame {
 
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
-	}
 }

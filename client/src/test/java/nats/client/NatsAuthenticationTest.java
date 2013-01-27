@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012,2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ import org.testng.Assert;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Tests authentication against a secured NATS server.
@@ -50,23 +48,19 @@ public class NatsAuthenticationTest {
 
 	@Test
 	public void failedAuthenticationTest() throws Exception {
-		final Nats nats = new NatsConnector().addHost("nats://localhost:" + PORT).debug(true).automaticReconnect(false).connect();
-		try {
-			Assert.assertFalse(nats.getConnectionStatus().awaitServerReady(5, TimeUnit.SECONDS), "Did not connect to NATS server.");
-			Assert.assertFalse(nats.getConnectionStatus().isConnected());
-		} finally {
-			nats.close();
+		final BlockingConnectionStateListener listener = new BlockingConnectionStateListener();
+		try (Nats nats = new NatsConnector().addHost("nats://localhost:" + PORT).automaticReconnect(false).addConnectionStateListener(listener).connect()) {
+			listener.awaitDisconnect();
+			Assert.assertFalse(nats.isConnected());
 		}
 	}
 
 	@Test
 	public void successfulAuthenticationTest() throws Exception {
-		final Nats nats = new NatsConnector().addHost(natsServer.getUri()).debug(true).automaticReconnect(false).connect();
-		try {
-			Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(5, TimeUnit.SECONDS), "Did not connect to NATS server.");
-			Assert.assertTrue(nats.getConnectionStatus().isConnected());
-		} finally {
-			nats.close();
+		final BlockingConnectionStateListener listener = new BlockingConnectionStateListener();
+		try (Nats nats = new NatsConnector().addHost("nats://" + USER_NAME + ":" + PASSWORD + "@localhost:" + PORT).automaticReconnect(false).addConnectionStateListener(listener).connect()) {
+			listener.awaitReady();
+			Assert.assertTrue(nats.isConnected());
 		}
 	}
 }

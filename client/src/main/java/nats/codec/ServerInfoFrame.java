@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2013 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,14 +16,20 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+public class ServerInfoFrame implements ServerFrame {
 
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
+	// TODO Make an InfoBody class for going back and forth between the INFO json payload.
+	private final String info;
+
+	public ServerInfoFrame(String info) {
+		this.info = info;
 	}
+
+	public String getInfo() {
+		return info;
+	}
+
 }

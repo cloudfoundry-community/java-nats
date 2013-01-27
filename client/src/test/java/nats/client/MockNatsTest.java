@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012,2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -27,23 +27,23 @@ import java.util.concurrent.TimeUnit;
  */
 public class MockNatsTest {
 
-	@Test
+	@Test(timeOut = 500)
 	public void blockingSubscribe() {
 		final Nats nats = new MockNats();
 		final String subject = "test";
 		final String message = "Have a nice day.";
 		final Subscription subscription = nats.subscribe(subject);
-		final SubscriptionIterator iterator = subscription.iterator();
+		final MessageIterator iterator = subscription.iterator();
 		nats.publish(subject, message);
-		Assert.assertEquals(iterator.next(1, TimeUnit.SECONDS).getBody(), message);
+		Assert.assertEquals(iterator.next().getBody(), message);
 	}
 
-	@Test
+	@Test(timeOut = 500)
 	public void blockingSubscribeNullMessage() {
 		final Nats nats = new MockNats();
 		final String subject = "test";
 		final Subscription subscription = nats.subscribe(subject);
-		final SubscriptionIterator iterator = subscription.iterator();
+		final MessageIterator iterator = subscription.iterator();
 		nats.publish(subject);
 		Assert.assertNull(iterator.next().getBody());
 	}

@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2013 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,14 +16,17 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
+import io.netty.buffer.ByteBuf;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+class ByteBufUtil {
 
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
+	static final byte[] CRLF = "\r\n".getBytes();
+
+	static void writeIntegerAsString(ByteBuf buffer, int i) {
+		buffer.writeBytes(Integer.toString(i).getBytes());
 	}
+
 }

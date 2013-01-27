@@ -18,7 +18,7 @@ To use the basic client in your project, add the following to your Maven pom.xml
 </dependency>
 ```
 
-To use the Spring integration, add the following to your Maven pom.xml:
+To use the optional Spring integration, add the following to your Maven pom.xml:
 
 ```xml
 <dependency>
@@ -32,5 +32,5 @@ To use the Spring integration, add the following to your Maven pom.xml:
 
 (The Apache Software License 2.0) - http://www.apache.org/licenses/
 
-Copyright (c) 2012 Mike Heath
+Copyright (c) 2012, 2013 Mike Heath
 

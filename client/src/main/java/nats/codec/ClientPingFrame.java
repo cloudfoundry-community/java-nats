@@ -16,14 +16,11 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+public class ClientPingFrame implements ClientFrame {
 
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
-	}
+	public static ClientPingFrame PING = new ClientPingFrame();
+
 }

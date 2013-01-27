@@ -14,16 +14,19 @@
  *   limitations under the License.
  *
  */
-package nats.codec;
-
-import io.netty.channel.CombinedChannelHandler;
+package nats.client;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+public interface ConnectionStateListener {
 
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
+	public enum State {
+		CONNECTED,
+		SERVERY_READY,
+		DISCONNECTED
 	}
+
+	void onConnectionStateChange(Nats nats, State state);
+
 }

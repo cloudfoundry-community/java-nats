@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -26,16 +26,19 @@ import java.util.concurrent.TimeUnit;
 public interface Message {
 
 	/**
-	 * Returns the {@link Subscription} instance the message arrived on.
+	 * Returns {@code true} if the message originated from a request, {@code false} if the message originated from a
+	 * publish. If the message originated from a request, the {@link #reply(String)} and
+	 * {@link #reply(String, long, java.util.concurrent.TimeUnit)} may be used to reply to the request.
 	 *
-	 * @return the {@link Subscription} instance the message arrived on
+	 * @return {@code true} if the message originated from a request, {@code false} if the message originated from a
+	 *         publish.
 	 */
-	Subscription getSubscription();
+	boolean isRequest();
 
 	/**
-	 * Returns the NATS subject the message was published on.
+	 * Returns the subject used to send the message.
 	 *
-	 * @return the NATS subject the message was published on
+	 * @return the subject used to send the message.
 	 */
 	String getSubject();
 
@@ -47,33 +50,31 @@ public interface Message {
 	String getBody();
 
 	/**
-	 * Returns the reply to subject of the message or {@code null} if the message did not contain a {@code replyTo} field.
+	 * Returns the queue group of the message.
 	 *
-	 * @return the reply to subject of the message or {@code null} if the message did not contain a {@code replyTo} field
+	 * @return the queue group of the message.
 	 */
-	String getReplyTo();
+	String getQueueGroup();
 
 	/**
 	 * Sends a reply to this message. If the the message did not contain a {@code replyTo} field, a
 	 * {@link nats.NatsException} will be thrown.
 	 *
-	 * @param message the message with which to reply to the sender
-	 * @return a {@code Publication} instance representing the pending reply operation
-	 * @throws nats.NatsException if the message did not contain a {@code replyTo} field
+	 * @param message the message with which to reply to the requester
+	 * @throws UnsupportedOperationException if the message did not originate from a request
 	 */
-	Publication reply(String message);
+	void reply(String message);
 
 	/**
 	 * Sends a reply to this message after the specified delay has passed. This method returns immediate and sends the
 	 * delayed response asynchronously. If the the message did not contain a {@code replyTo} field, a
 	 * {@link nats.NatsException} will be thrown.
 	 *
-	 * @param message the message with which to reply to the sender
+	 * @param message the message with which to reply to the requester
 	 * @param delay   the amount of time to wait before sending the reply
 	 * @param unit    the time unit of the {@code delay} argument
-	 * @return a {@code Publication} instance representing the pending reply operation
-	 * @throws nats.NatsException if the message did not contain a {@code replyTo} field
+	 * @throws UnsupportedOperationException if the message did not originate from a request
 	 */
-	Publication reply(String message, long delay, TimeUnit unit);
+	void reply(String message, long delay, TimeUnit unit);
 
 }

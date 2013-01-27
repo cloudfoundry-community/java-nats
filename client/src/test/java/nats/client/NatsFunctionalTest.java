@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012,2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
  */
 package nats.client;
 
-import org.testng.Assert;
+import static org.testng.Assert.*;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-@Test(groups = {"basic", "functional"})
 public class NatsFunctionalTest {
 
 	private NatsServerProcess natsServer;
@@ -45,11 +44,10 @@ public class NatsFunctionalTest {
 
 	@Test
 	public void connectionTest() throws Exception {
-		final Nats nats = new NatsConnector().addHost(natsServer.getUri()).connect();
-		try {
-			Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(2, TimeUnit.SECONDS));
-		} finally {
-			nats.close();
+		final BlockingConnectionStateListener listener = new BlockingConnectionStateListener();
+		try (Nats nats = new NatsConnector().addHost(natsServer.getUri()).addConnectionStateListener(listener).connect()) {
+			listener.awaitReady();
+			assertTrue(nats.isConnected());
 		}
 	}
 
@@ -71,9 +69,11 @@ public class NatsFunctionalTest {
 				final String subject = "test";
 				final String message = "Have a nice day.";
 				final Subscription subscription = nats.subscribe(subject);
-				final SubscriptionIterator iterator = subscription.iterator();
+				final MessageIterator iterator = subscription.iterator();
 				nats.publish(subject, message);
-				Assert.assertEquals(iterator.next(1, TimeUnit.SECONDS).getBody(), message);
+				final Message next = iterator.next(2, TimeUnit.SECONDS);
+				assertNotNull(next);
+				assertEquals(next.getBody(), message);
 			}
 		});
 	}
@@ -93,7 +93,7 @@ public class NatsFunctionalTest {
 					}
 				});
 				nats.publish(subject, message);
-				Assert.assertTrue(latch.await(1, TimeUnit.SECONDS));
+				assertTrue(latch.await(1, TimeUnit.SECONDS));
 			}
 		});
 	}
@@ -120,7 +120,7 @@ public class NatsFunctionalTest {
 						latch.countDown();
 					}
 				});
-				Assert.assertTrue(latch.await(5, TimeUnit.SECONDS), "Failed to get response from request within time limit.");
+				assertTrue(latch.await(5, TimeUnit.SECONDS), "Failed to get response from request within time limit.");
 			}
 		});
 	}
@@ -145,15 +145,15 @@ public class NatsFunctionalTest {
 					}
 				});
 
-				nats.publish(subject, "First message").await();
-				final SubscriptionIterator iterator = subscription.iterator();
+				nats.publish(subject, "First message");
+				final MessageIterator iterator = subscription.iterator();
 				iterator.next(2, TimeUnit.SECONDS);
-				Assert.assertEquals(subscription.getReceivedMessages(), 1, "The first message didn't arrive.");
+				assertEquals(subscription.getReceivedMessages(), 1, "The first message didn't arrive.");
 				subscription.close();
-				nats.publish(subject, "Second message").await();
-				nats.publish(subject, "Third message").await();
-				Assert.assertTrue(latch.await(5, TimeUnit.SECONDS), "Messages were not received on second subscription.");
-				Assert.assertEquals(subscription.getReceivedMessages(), 1, "The subscription didn't actually shut down, more than one message arrived.");
+				nats.publish(subject, "Second message");
+				nats.publish(subject, "Third message");
+				assertTrue(latch.await(5, TimeUnit.SECONDS), "Messages were not received on second subscription.");
+				assertEquals(subscription.getReceivedMessages(), 1, "The subscription didn't actually shut down, more than one message arrived.");
 			}
 		});
 	}
@@ -165,24 +165,22 @@ public class NatsFunctionalTest {
 			public void natsTest(Nats nats) throws Exception {
 				final String testString = "\uD834\uDD1E";
 				final String subject = "test";
-				final SubscriptionIterator iterator = nats.subscribe(subject).iterator();
+				final MessageIterator iterator = nats.subscribe(subject).iterator();
 				final Process process = new ProcessBuilder("nats-pub", "-s", natsServer.getUri(), subject, testString).start();
-				Assert.assertEquals(process.waitFor(), 0, "Pub failed");
+				assertEquals(process.waitFor(), 0, "Pub failed");
 				final Message message = iterator.next(5, TimeUnit.SECONDS);
-				Assert.assertNotNull(message, "Did not receive a message from server.");
-				Assert.assertEquals(message.getBody(), testString);
+				assertNotNull(message, "Did not receive a message from server.");
+				assertEquals(message.getBody(), testString);
 			}
 		});
 	}
 
 	protected void runNatsTest(NatsTestCase testCase) throws Exception {
-		final Nats nats = new NatsConnector().addHost(natsServer.getUri()).debug(true).connect();
-		Assert.assertTrue(nats.getConnectionStatus().awaitServerReady(5, TimeUnit.SECONDS), "Did not connect to NATS server.");
-		Assert.assertTrue(nats.getConnectionStatus().isConnected());
-		try {
+		final BlockingConnectionStateListener listener = new BlockingConnectionStateListener();
+		try (final Nats nats = new NatsConnector().addHost(natsServer.getUri()).addConnectionStateListener(listener).connect()) {
+			listener.awaitReady();
+			assertTrue(nats.isConnected());
 			testCase.natsTest(nats);
-		} finally {
-			nats.close();
 		}
 	}
 

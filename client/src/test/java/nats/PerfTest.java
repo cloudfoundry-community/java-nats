@@ -18,10 +18,10 @@ package nats;
 
 import nats.client.Message;
 import nats.client.MessageHandler;
+import nats.client.MessageIterator;
 import nats.client.Nats;
 import nats.client.NatsConnector;
 import nats.client.Subscription;
-import nats.client.SubscriptionIterator;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,7 +32,7 @@ import java.util.concurrent.CountDownLatch;
  */
 public class PerfTest {
 	public static void main(String[] args) throws Exception {
-		final NatsConnector builder = new NatsConnector().addHost("nats://localhost").debug(true);
+		final NatsConnector builder = new NatsConnector().addHost("nats://localhost");
 		final Nats sender = builder.connect();
 		for (int i = 100; i <= 1000; i += 100) {
 			final Collection<Nats> connections = new ArrayList<Nats>(i);
@@ -76,9 +76,8 @@ public class PerfTest {
 		return System.currentTimeMillis() - start;
 	}
 
-	private static String alphabet = "abcdefghijklmnopqrstuvwxyz";
-
 	private static String createMessage(int size) {
+		final String alphabet = "abcdefghijklmnopqrstuvwxyz";
 		char[] message = new char[size];
 		for (int i = 0; i < size; i++) {
 			message[i] = alphabet.charAt(i % alphabet.length());
@@ -89,7 +88,7 @@ public class PerfTest {
 	private static void blockUntilConnected(Collection<Nats> connections) {
 		for (Nats nats : connections) {
 			final Subscription subscription = nats.subscribe("test");
-			final SubscriptionIterator iterator = subscription.iterator();
+			final MessageIterator iterator = subscription.iterator();
 			nats.publish("test", "Have a nice day.");
 			iterator.next();
 			subscription.close();

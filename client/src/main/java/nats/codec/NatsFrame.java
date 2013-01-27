@@ -16,14 +16,10 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
-
 /**
+ * Classes of this type are NATS frames to be encoded or decoded between a client and server.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
-
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
-	}
+public interface NatsFrame {
 }

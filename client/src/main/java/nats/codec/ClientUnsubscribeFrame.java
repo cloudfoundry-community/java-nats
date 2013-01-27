@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2013 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2012,2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,14 +16,30 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+public class ClientUnsubscribeFrame implements ClientFrame {
 
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
+	private final String id;
+
+	private final Integer maxMessages;
+
+	public ClientUnsubscribeFrame(String id) {
+		this(id, null);
 	}
+
+	public ClientUnsubscribeFrame(String id, Integer maxMessages) {
+		this.id = id;
+		this.maxMessages = maxMessages;
+	}
+
+	public String getId() {
+		return id;
+	}
+
+	public Integer getMaxMessages() {
+		return maxMessages;
+	}
+
 }

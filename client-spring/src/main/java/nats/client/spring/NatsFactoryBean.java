@@ -16,14 +16,13 @@
  */
 package nats.client.spring;
 
+import io.netty.channel.EventLoopGroup;
 import nats.NatsException;
-import nats.NatsLogger;
-import nats.client.ExceptionHandler;
+import nats.client.ConnectionStateListener;
 import nats.client.Message;
 import nats.client.MessageHandler;
 import nats.client.Nats;
 import nats.client.NatsConnector;
-import org.jboss.netty.channel.ChannelFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 
@@ -42,10 +41,8 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 
 	private Collection<String> hostUris;
 	private boolean autoReconnect = true;
-	private ChannelFactory channelFactory;
-	private ExceptionHandler exceptionHandler;
-	private NatsLogger logger;
-	private int maxReconnectAttempts = -1;
+	private EventLoopGroup eventLoopGroup;
+	private ConnectionStateListener connectionStateListener;
 	private long reconnectWaitTime = -1;
 
 	private Collection<SubscriptionConfig> subscriptions;
@@ -63,17 +60,11 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 			builder.addHost(uri);
 		}
 		builder.automaticReconnect(autoReconnect);
-		if (channelFactory != null) {
-			builder.channelFactory(channelFactory);
+		if (connectionStateListener != null) {
+			builder.addConnectionStateListener(connectionStateListener);
 		}
-		if (exceptionHandler != null) {
-			builder.exceptionHandler(exceptionHandler);
-		}
-		if (logger != null) {
-			builder.logger(logger);
-		}
-		if (maxReconnectAttempts > 0) {
-			builder.maxReconnectAttempts(maxReconnectAttempts);
+		if (eventLoopGroup != null) {
+			builder.eventLoopGroup(eventLoopGroup);
 		}
 		if (reconnectWaitTime >= 0) {
 			builder.reconnectWaitTime(reconnectWaitTime, TimeUnit.MILLISECONDS);
@@ -116,27 +107,19 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 	}
 
 	public void setHostUris(Collection<String> hostUris) {
-		this.hostUris = new ArrayList<String>(hostUris);
+		this.hostUris = new ArrayList<>(hostUris);
 	}
 
 	public void setAutoReconnect(boolean autoReconnect) {
 		this.autoReconnect = autoReconnect;
 	}
 
-	public void setChannelFactory(ChannelFactory channelFactory) {
-		this.channelFactory = channelFactory;
+	public void setConnectionStateListener(ConnectionStateListener connectionStateListener) {
+		this.connectionStateListener = connectionStateListener;
 	}
 
-	public void setExceptionHandler(ExceptionHandler exceptionHandler) {
-		this.exceptionHandler = exceptionHandler;
-	}
-
-	public void setLogger(NatsLogger logger) {
-		this.logger = logger;
-	}
-
-	public void setMaxReconnectAttempts(int maxReconnectAttempts) {
-		this.maxReconnectAttempts = maxReconnectAttempts;
+	public void setEventLoopGroup(EventLoopGroup eventLoopGroup) {
+		this.eventLoopGroup = eventLoopGroup;
 	}
 
 	public void setReconnectWaitTime(long reconnectWaitTime) {

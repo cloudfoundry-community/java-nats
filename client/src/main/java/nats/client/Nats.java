@@ -29,7 +29,22 @@ import java.io.Closeable;
  */
 public interface Nats extends Closeable {
 
-	ConnectionStatus getConnectionStatus();
+	/**
+	 * Indicates if this client is connected to a NATS server. This method will always return true after the
+	 * {@link #close()} method has been invoked. If the connection to the server is lost, the client will automatically
+	 * try to reconnect to a server unless, of course, this feature has been disabled.
+	 *
+	 * @return {@code true} if the client is connected to a NATS server, {@code false} otherwise.
+	 */
+	boolean isConnected();
+
+	/**
+	 * Indicates if this client has been closed.
+	 *
+	 * @return {@code true} if {@link #close()} was called (explicitly or implicitly due to an error), {@code false}
+	 * otherwise.
+	 */
+	boolean isClosed();
 
 	/**
 	 * Closes this Nats instance. Closes the connection to the Nats server, closes any subscriptions, cancels any
@@ -38,66 +53,62 @@ public interface Nats extends Closeable {
 	void close();
 
 	/**
-	 * Publishes an empty message to the specified subject. If this {@code Nats} instance is not currently connected to
-	 * a Nats server, the message will be queued up to be published once a connection is established.
+	 * Publishes an empty body to the specified subject. If this {@code Nats} instance is not currently connected to
+	 * a Nats server, the body will be queued up to be published once a connection is established.
 	 *
 	 * @param subject the subject to publish to
-	 * @return a {@code Publication} object representing the pending publish operation.
 	 */
-	Publication publish(String subject);
+	void publish(String subject);
 
 	/**
-	 * Publishes a message to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
-	 * server, the message will be queued up to be published once a connection is established.
+	 * Publishes a body to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
+	 * server, the body will be queued up to be published once a connection is established.
 	 *
 	 * @param subject the subject to publish to
-	 * @param message the message to publish
-	 * @return a {@code Publication} object representing the pending publish operation.
+	 * @param body the body to publish
 	 */
-	Publication publish(String subject, String message);
+	void publish(String subject, String body);
 
 	/**
-	 * Publishes a message to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
-	 * server, the message will be queued up to be published once a connection is established.
+	 * Publishes a body to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
+	 * server, the body will be queued up to be published once a connection is established.
 	 *
 	 * @param subject the subject to publish to
-	 * @param message the message to publish
-	 * @param replyTo the subject replies to this message should be sent to.
-	 * @return a {@code Publication} object representing the pending publish operation.
+	 * @param body the body to publish
+	 * @param replyTo the subject replies to this body should be sent to.
 	 */
-	Publication publish(String subject, String message, String replyTo);
+	void publish(String subject, String body, String replyTo);
 
 	/**
 	 * Subscribes to the specified subject.
 	 *
 	 * @param subject the subject to subscribe to.
 	 * @return a {@code Subscription} object used for interacting with the subscription
-	 * @see #subscribe(String, String, Integer)
+	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
-	Subscription subscribe(String subject);
+	Subscription subscribe(String subject, MessageHandler... messageHandlers);
 
 	/**
 	 * Subscribes to the specified subject within a specific queue group. The subject can be a specific subject or
-	 * include wild cards. A message to a particular subject will be delivered to only member of the same queue group.
+	 * include wild cards. A body to a particular subject will be delivered to only member of the same queue group.
 	 *
 	 * @param subject    the subject to subscribe to
 	 * @param queueGroup the queue group the subscription participates in
 	 * @return a {@code Subscription} object used for interacting with the subscription
-	 * @see #subscribe(String, String, Integer)
+	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
-	Subscription subscribe(String subject, String queueGroup);
+	Subscription subscribe(String subject, String queueGroup, MessageHandler... messageHandlers);
 
 	/**
 	 * Subscribes to the specified subject and will automatically unsubscribe after the specified number of messages
 	 * arrives.
 	 *
 	 * @param subject     the subject to subscribe to
-	 * @param maxMessages the number of messages this subscription will receive before automatically closing the
-	 *                    subscription.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
-	 * @see #subscribe(String, String, Integer)
+	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
-	Subscription subscribe(String subject, Integer maxMessages);
+	Subscription subscribe(String subject, Integer maxMessages, MessageHandler... messageHandlers);
 
 	/**
 	 * Subscribes to the specified subject within a specific queue group and will automatically unsubscribe after the
@@ -113,44 +124,41 @@ public interface Nats extends Closeable {
 	 * <p>">" matches any length of the tail of a subject and can only be the last token. For examples, 'foo.>' will
 	 * match 'foo.bar', 'foo.bar.baz', 'foo.foo.bar.bax.22'. A subject of simply ">" will match all messages.
 	 * <p/>
-	 * <p>All subscriptions with the same {@code queueGroup} will form a queue group. Each message will be delivered to
+	 * <p>All subscriptions with the same {@code queueGroup} will form a queue group. Each body will be delivered to
 	 * only one subscriber per queue group.
 	 *
 	 * @param subject     the subject to subscribe to
 	 * @param queueGroup  the queue group the subscription participates in
-	 * @param maxMessages the number of messages this subscription will receive before automatically closing the
-	 *                    subscription.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 */
-	Subscription subscribe(String subject, String queueGroup, Integer maxMessages);
+	Subscription subscribe(String subject, String queueGroup, Integer maxMessages, MessageHandler... messageHandlers);
 
 	/**
-	 * Sends a request message on the given subject. Request responses can be handled using the returned
+	 * Sends a request body on the given subject. Request responses can be handled using the returned
 	 * {@link Request}.
 	 *
 	 * @param subject         the subject to send the request on
 	 * @param message         the content of the request
-	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
-	 *                        attached to the requests publication, so you can optionally add a message handler here.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
 	 * @see #request(String, String, Integer, MessageHandler...)
 	 */
 	Request request(String subject, String message, MessageHandler... messageHandlers);
 
 	/**
-	 * Sends a request on the given subject with an empty message. Request responses can be handled using the returned
+	 * Sends a request on the given subject with an empty body. Request responses can be handled using the returned
 	 * {@link Request}.
 	 *
 	 * @param subject         the subject to send the request on
-	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
-	 *                        attached to the requests publication, so you can optionally add a message handler here.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
 	 * @see #request(String, String, Integer, MessageHandler...)
 	 */
 	Request request(String subject, MessageHandler... messageHandlers);
 
 	/**
-	 * Sends a request message on the given subject. Request responses can be handled using the returned
+	 * Sends a request body on the given subject. Request responses can be handled using the returned
 	 * {@link Request}.
 	 * <p/>
 	 * Invoking this method is roughly equivalent to the following:
@@ -158,7 +166,7 @@ public interface Nats extends Closeable {
 	 * <code>
 	 * String replyTo = Nats.createInbox();
 	 * Subscription subscription = nats.subscribe(replyTo, maxReplies);
-	 * Publication publication = nats.publish(subject, message, replyTo);
+	 * Publication publication = nats.publish(subject, body, replyTo);
 	 * </code>
 	 * <p/>
 	 * that returns a combination of {@code Subscription} and {@code Publication} as a {@code Request} object.
@@ -167,8 +175,7 @@ public interface Nats extends Closeable {
 	 * @param message         the content of the request
 	 * @param maxReplies      the maximum number of replies that the request will accept before automatically closing,
 	 *                        {@code null} for unlimited replies
-	 * @param messageHandlers there is small chance that the request reply will arrive before a message handler is
-	 *                        attached to the requests publication, so you can optionally add a message handler here.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
 	 */
 	Request request(String subject, String message, Integer maxReplies, MessageHandler... messageHandlers);

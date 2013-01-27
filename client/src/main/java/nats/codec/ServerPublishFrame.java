@@ -16,14 +16,37 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
-
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+public class ServerPublishFrame implements ServerFrame {
 
-	public ClientCodec(int maxMessageSize) {
-		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
+	private final String id;
+	private final String subject;
+	private final String replyTo;
+	private final String body;
+
+	public ServerPublishFrame(String id, String subject, String replyTo, String body) {
+		this.id = id;
+		this.subject = subject;
+		this.replyTo = replyTo;
+		this.body = body;
 	}
+
+	public String getId() {
+		return id;
+	}
+
+	public String getReplyTo() {
+		return replyTo;
+	}
+
+	public String getSubject() {
+		return subject;
+	}
+
+	public String getBody() {
+		return body;
+	}
+
 }

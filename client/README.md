@@ -9,7 +9,7 @@ This NATS client is thread-safe.
 Nats nats = new NatsConnector().addHost("nats://localhost:4222").connect();
 
 // Simple subscriber
-nats.subscribe("foo").addMessageHandler(new MessageHandler() {
+nats.subscribe("foo", new MessageHandler() {
     @Override
     public void onMessage(Message message) {
         System.out.println("Received: " + message);
@@ -29,7 +29,7 @@ nats.request("help", new MessageHandler() {
 });
 
 // Replies
-nats.subscribe("help").addMessageHandler(new MessageHandler() {
+nats.subscribe("help", new MessageHandler() {
     @Override
     public void onMessage(Message message) {
         message.reply("I'll help!");
@@ -106,14 +106,6 @@ nats.subscribe(subject, "job.workers").addMessageListener(...);
 ## Advanced Usage
 
 ```java
-// Publish with a callback invoked when publish has been acknowledged by server.
-nats.publish("foo", "message").addCompletionHandler(new CompletionHandler<Publication>() {
-    @Override
-    public void onComplete(Publication publication) {
-        System.out.println("Published message!");
-    }
-});
-
 // Add multiple NATS servers when using NATS clustering
 Nats nats = new NatsConnector().addHost("nats://host1").addHost("nats://host2").connect();
 

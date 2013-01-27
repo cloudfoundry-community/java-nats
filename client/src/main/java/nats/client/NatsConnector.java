@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -16,9 +16,8 @@
  */
 package nats.client;
 
+import io.netty.channel.EventLoopGroup;
 import nats.Constants;
-import nats.NatsLogger;
-import org.jboss.netty.channel.ChannelFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -29,22 +28,19 @@ import java.util.concurrent.TimeUnit;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsConnector {
-	List<URI> hosts = new ArrayList<URI>();
+	List<URI> hosts = new ArrayList<>();
 	boolean automaticReconnect = true;
-	int maxReconnectAttempts = Constants.DEFAULT_MAX_RECONNECT_ATTEMPTS;
 	long reconnectWaitTime = Constants.DEFAULT_RECONNECT_TIME_WAIT;
 	boolean pedantic = false;
-	ChannelFactory channelFactory;
-	NatsLogger logger;
-	ExceptionHandler exceptionHandler;
-	int maxMessageSize = Constants.DEFAULT_MAX_MESSAGE_SIZE;
-	boolean debug = false;
+	EventLoopGroup eventLoopGroup;
+	int maxFrameSize = Constants.DEFAULT_MAX_FRAME_SIZE;
+	final List<ConnectionStateListener> listeners = new ArrayList<>();
 
 	/**
 	 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
 	 *
 	 * @param uri a Nats URI referencing a Nats server.
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector addHost(URI uri) {
 		if (!Constants.PROTOCOL.equalsIgnoreCase(uri.getScheme())) {
@@ -58,7 +54,7 @@ public class NatsConnector {
 	 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
 	 *
 	 * @param uri a Nats URI referencing a Nats server.
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector addHost(String uri) {
 		return addHost(URI.create(uri));
@@ -70,7 +66,7 @@ public class NatsConnector {
 	 *
 	 * @param automaticReconnect whether a reconnect should be attempted automatically if the Nats server
 	 *                           connection fails.
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector automaticReconnect(boolean automaticReconnect) {
 		this.automaticReconnect = automaticReconnect;
@@ -78,24 +74,13 @@ public class NatsConnector {
 	}
 
 	/**
-	 * Specifies the Netty {@link ChannelFactory} to use for connecting to the Nats server(s). (optional)
+	 * Specifies the Netty {@link EventLoopGroup} to use for connecting to the Nats server(s). (optional)
 	 *
-	 * @param channelFactory the Netty {@code ChannelFactory} to use for connecting to the Nats server(s)
-	 * @return this {@code Builder} instance.
+	 * @param eventLoopGroup the Netty {@code ChannelFactory} to use for connecting to the Nats server(s)
+	 * @return this connector.
 	 */
-	public NatsConnector channelFactory(ChannelFactory channelFactory) {
-		this.channelFactory = channelFactory;
-		return this;
-	}
-
-	/**
-	 * Specifies the maximum number of subsequent connection attempts to make for a given server. (optional)
-	 *
-	 * @param maxReconnectAttempts the maximum number of subsequent connection attempts to make for a given server
-	 * @return this {@code Builder} instance.
-	 */
-	public NatsConnector maxReconnectAttempts(int maxReconnectAttempts) {
-		this.maxReconnectAttempts = maxReconnectAttempts;
+	public NatsConnector eventLoopGroup(EventLoopGroup eventLoopGroup) {
+		this.eventLoopGroup = eventLoopGroup;
 		return this;
 	}
 
@@ -105,7 +90,7 @@ public class NatsConnector {
 	 *
 	 * @param time the amount of time to wait between connection attempts.
 	 * @param unit the time unit of the {@code time} argument
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector reconnectWaitTime(long time, TimeUnit unit) {
 		this.reconnectWaitTime = unit.toMillis(time);
@@ -116,7 +101,7 @@ public class NatsConnector {
 	 * Indicates whether the server should do extra checking, mostly around properly formed subjects.
 	 *
 	 * @param pedantic
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector pedantic(boolean pedantic) {
 		this.pedantic = pedantic;
@@ -124,34 +109,27 @@ public class NatsConnector {
 	}
 
 	/**
-	 * Specifies the {@link NatsLogger} to be used by the {@code Nats} instance.
+	 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1MB.
 	 *
-	 * @param logger the {@code NatsLogger} to be used by the {@code Nats} instance.
-	 * @return this {@code Builder} instance.
+	 * @param maxFrameSize the maximum message size that can be received by the {@code} Nats instance.
+	 * @return this connector.
 	 */
-	public NatsConnector logger(NatsLogger logger) {
-		this.logger = logger;
-		return this;
-	}
-
-	public NatsConnector exceptionHandler(ExceptionHandler exceptionHandler) {
-		this.exceptionHandler = exceptionHandler;
+	public NatsConnector maxFrameSize(int maxFrameSize) {
+		this.maxFrameSize = maxFrameSize;
 		return this;
 	}
 
 	/**
-	 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1MB.
+	 * Adds a {@link ConnectionStateListener} to the client. This allows you to be notified when a connection is
+	 * established, when the server is ready to process messages, and when the connection disconnects. If the
+	 * connection to the server closes unexpectedly, the client will automatically try to reconnect to the Cloud
+	 * Event Bus cluster.
 	 *
-	 * @param maxMessageSize the maximum message size that can be received by the {@code} Nats instance.
-	 * @return this {@code Builder} instance.
+	 * @param listener the listener to use
+	 * @return this connector.
 	 */
-	public NatsConnector maxMessageSize(int maxMessageSize) {
-		this.maxMessageSize = maxMessageSize;
-		return this;
-	}
-
-	public NatsConnector debug(boolean debug) {
-		this.debug = debug;
+	public NatsConnector addConnectionStateListener(ConnectionStateListener listener) {
+		listeners.add(listener);
 		return this;
 	}
 
