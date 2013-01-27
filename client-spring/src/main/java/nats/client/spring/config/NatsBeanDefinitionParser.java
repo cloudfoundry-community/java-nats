@@ -37,10 +37,8 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 
 	static final String ATTRIBUTE_ID = "id";
 	static final String ATTRIBUTE_AUTO_RECONNECT = "auto-reconnect";
-	static final String ATTRIBUTE_CHANNEL_FACTORY_REF = "channel-factory-ref";
-	static final String ATTRIBUTE_EXCEPTION_HANDLER_REF = "exception-handler-ref";
-	static final String ATTRIBUTE_LOGGER_REF = "logger-ref";
-	static final String ATTRIBUTE_MAX_RECONNECT_ATTEMPTS = "max-reconnect-attempts";
+	static final String ATTRIBUTE_EVENT_LOOP_GROUP_REF = "event-loop-group-ref";
+	static final String ATTRIBUTE_CONNECTION_STATE_LISTENER_REF = "connection-state-listener-ref";
 	static final String ATTRIBUTE_RECONNECT_WAIT_TIME = "reconnect-wait-time";
 	static final String ELEMENT_URL = "url";
 
@@ -55,7 +53,7 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 		final BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(NatsFactoryBean.class);
 
 		// Parse list of hosts
-		final List<String> uris = new ManagedList<String>();
+		final List<String> uris = new ManagedList<>();
 		final List<Element> hosts = DomUtils.getChildElementsByTagName(element, ELEMENT_URL);
 		for (Element host : hosts) {
 			uris.add(host.getTextContent());
@@ -63,7 +61,7 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 		builder.addPropertyValue("hostUris", uris);
 
 		// Parse list of subscriptions
-		final List<BeanDefinition> subscriptions = new ManagedList<BeanDefinition>();
+		final List<BeanDefinition> subscriptions = new ManagedList<>();
 		final List<Element> subscriptionElements = DomUtils.getChildElementsByTagName(element, ELEMENT_SUBSCRIPTION);
 		for (Element subscriptionElement : subscriptionElements) {
 			final BeanDefinitionBuilder subscriptionBuilder = BeanDefinitionBuilder.genericBeanDefinition(SubscriptionConfig.class);
@@ -77,19 +75,14 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 
 		// Parse attributes
 		builder.addPropertyValue("autoReconnect", element.getAttribute(ATTRIBUTE_AUTO_RECONNECT));
-		builder.addPropertyValue("maxReconnectAttempts", element.getAttribute(ATTRIBUTE_MAX_RECONNECT_ATTEMPTS));
 		builder.addPropertyValue("reconnectWaitTime", element.getAttribute(ATTRIBUTE_RECONNECT_WAIT_TIME));
-		final String channelFactoryRef = element.getAttribute(ATTRIBUTE_CHANNEL_FACTORY_REF);
-		if (StringUtils.hasText(channelFactoryRef)) {
-			builder.addPropertyReference("channelFactory", channelFactoryRef);
+		final String eventLoopGroupRef = element.getAttribute(ATTRIBUTE_EVENT_LOOP_GROUP_REF);
+		if (StringUtils.hasText(eventLoopGroupRef)) {
+			builder.addPropertyReference("eventLoopGroup", eventLoopGroupRef);
 		}
-		final String exceptionHandlerRef = element.getAttribute(ATTRIBUTE_EXCEPTION_HANDLER_REF);
-		if (StringUtils.hasText(exceptionHandlerRef)) {
-			builder.addPropertyReference("exceptionHandler", exceptionHandlerRef);
-		}
-		final String loggerRef = element.getAttribute(ATTRIBUTE_LOGGER_REF);
-		if (StringUtils.hasText(loggerRef)) {
-			builder.addPropertyReference("logger", loggerRef);
+		final String connectionStateListenerRef = element.getAttribute(ATTRIBUTE_CONNECTION_STATE_LISTENER_REF);
+		if (StringUtils.hasText(connectionStateListenerRef)) {
+			builder.addPropertyReference("connectionStateListener", connectionStateListenerRef);
 		}
 
 		// Register bean

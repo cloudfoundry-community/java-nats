@@ -16,7 +16,9 @@
  */
 package nats.client.spring;
 
+import io.netty.channel.EventLoopGroup;
 import nats.NatsException;
+import nats.client.ConnectionStateListener;
 import nats.client.Message;
 import nats.client.MessageHandler;
 import nats.client.Nats;
@@ -39,9 +41,8 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 
 	private Collection<String> hostUris;
 	private boolean autoReconnect = true;
-//	private ChannelFactory channelFactory;
-//	private ExceptionHandler exceptionHandler;
-//	private NatsLogger logger;
+	private EventLoopGroup eventLoopGroup;
+	private ConnectionStateListener connectionStateListener;
 	private long reconnectWaitTime = -1;
 
 	private Collection<SubscriptionConfig> subscriptions;
@@ -59,15 +60,12 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 			builder.addHost(uri);
 		}
 		builder.automaticReconnect(autoReconnect);
-//		if (channelFactory != null) {
-//			builder.channelFactory(channelFactory);
-//		}
-//		if (exceptionHandler != null) {
-//			builder.exceptionHandler(exceptionHandler);
-//		}
-//		if (logger != null) {
-//			builder.logger(logger);
-//		}
+		if (connectionStateListener != null) {
+			builder.addConnectionStateListener(connectionStateListener);
+		}
+		if (eventLoopGroup != null) {
+			builder.eventLoopGroup(eventLoopGroup);
+		}
 		if (reconnectWaitTime >= 0) {
 			builder.reconnectWaitTime(reconnectWaitTime, TimeUnit.MILLISECONDS);
 		}
@@ -109,11 +107,19 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 	}
 
 	public void setHostUris(Collection<String> hostUris) {
-		this.hostUris = new ArrayList<String>(hostUris);
+		this.hostUris = new ArrayList<>(hostUris);
 	}
 
 	public void setAutoReconnect(boolean autoReconnect) {
 		this.autoReconnect = autoReconnect;
+	}
+
+	public void setConnectionStateListener(ConnectionStateListener connectionStateListener) {
+		this.connectionStateListener = connectionStateListener;
+	}
+
+	public void setEventLoopGroup(EventLoopGroup eventLoopGroup) {
+		this.eventLoopGroup = eventLoopGroup;
 	}
 
 	public void setReconnectWaitTime(long reconnectWaitTime) {
