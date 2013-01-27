@@ -41,7 +41,7 @@ public interface Nats extends Closeable {
 	/**
 	 * Indicates if this client has been closed.
 	 *
-	 * @return {@code true} if {@link #isClosed()} was called (explicitly or implicitly due to an error), {@code false}
+	 * @return {@code true} if {@link #close()} was called (explicitly or implicitly due to an error), {@code false}
 	 * otherwise.
 	 */
 	boolean isClosed();
@@ -57,7 +57,6 @@ public interface Nats extends Closeable {
 	 * a Nats server, the body will be queued up to be published once a connection is established.
 	 *
 	 * @param subject the subject to publish to
-	 * @return a {@code Publication} object representing the pending publish operation.
 	 */
 	void publish(String subject);
 
@@ -67,7 +66,6 @@ public interface Nats extends Closeable {
 	 *
 	 * @param subject the subject to publish to
 	 * @param body the body to publish
-	 * @return a {@code Publication} object representing the pending publish operation.
 	 */
 	void publish(String subject, String body);
 
@@ -78,7 +76,6 @@ public interface Nats extends Closeable {
 	 * @param subject the subject to publish to
 	 * @param body the body to publish
 	 * @param replyTo the subject replies to this body should be sent to.
-	 * @return a {@code Publication} object representing the pending publish operation.
 	 */
 	void publish(String subject, String body, String replyTo);
 
@@ -87,9 +84,9 @@ public interface Nats extends Closeable {
 	 *
 	 * @param subject the subject to subscribe to.
 	 * @return a {@code Subscription} object used for interacting with the subscription
-	 * @see #subscribe(String, String, Integer)
+	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
-	Subscription subscribe(String subject);
+	Subscription subscribe(String subject, MessageHandler... messageHandlers);
 
 	/**
 	 * Subscribes to the specified subject within a specific queue group. The subject can be a specific subject or
@@ -98,21 +95,20 @@ public interface Nats extends Closeable {
 	 * @param subject    the subject to subscribe to
 	 * @param queueGroup the queue group the subscription participates in
 	 * @return a {@code Subscription} object used for interacting with the subscription
-	 * @see #subscribe(String, String, Integer)
+	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
-	Subscription subscribe(String subject, String queueGroup);
+	Subscription subscribe(String subject, String queueGroup, MessageHandler... messageHandlers);
 
 	/**
 	 * Subscribes to the specified subject and will automatically unsubscribe after the specified number of messages
 	 * arrives.
 	 *
 	 * @param subject     the subject to subscribe to
-	 * @param maxMessages the number of messages this subscription will receive before automatically closing the
-	 *                    subscription.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
-	 * @see #subscribe(String, String, Integer)
+	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
-	Subscription subscribe(String subject, Integer maxMessages);
+	Subscription subscribe(String subject, Integer maxMessages, MessageHandler... messageHandlers);
 
 	/**
 	 * Subscribes to the specified subject within a specific queue group and will automatically unsubscribe after the
@@ -133,11 +129,10 @@ public interface Nats extends Closeable {
 	 *
 	 * @param subject     the subject to subscribe to
 	 * @param queueGroup  the queue group the subscription participates in
-	 * @param maxMessages the number of messages this subscription will receive before automatically closing the
-	 *                    subscription.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 */
-	Subscription subscribe(String subject, String queueGroup, Integer maxMessages);
+	Subscription subscribe(String subject, String queueGroup, Integer maxMessages, MessageHandler... messageHandlers);
 
 	/**
 	 * Sends a request body on the given subject. Request responses can be handled using the returned
@@ -145,8 +140,7 @@ public interface Nats extends Closeable {
 	 *
 	 * @param subject         the subject to send the request on
 	 * @param message         the content of the request
-	 * @param messageHandlers there is small chance that the request reply will arrive before a body handler is
-	 *                        attached to the requests publication, so you can optionally add a body handler here.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
 	 * @see #request(String, String, Integer, MessageHandler...)
 	 */
@@ -157,8 +151,7 @@ public interface Nats extends Closeable {
 	 * {@link Request}.
 	 *
 	 * @param subject         the subject to send the request on
-	 * @param messageHandlers there is small chance that the request reply will arrive before a body handler is
-	 *                        attached to the requests publication, so you can optionally add a body handler here.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
 	 * @see #request(String, String, Integer, MessageHandler...)
 	 */
@@ -182,8 +175,7 @@ public interface Nats extends Closeable {
 	 * @param message         the content of the request
 	 * @param maxReplies      the maximum number of replies that the request will accept before automatically closing,
 	 *                        {@code null} for unlimited replies
-	 * @param messageHandlers there is small chance that the request reply will arrive before a body handler is
-	 *                        attached to the requests publication, so you can optionally add a body handler here.
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
 	 */
 	Request request(String subject, String message, Integer maxReplies, MessageHandler... messageHandlers);

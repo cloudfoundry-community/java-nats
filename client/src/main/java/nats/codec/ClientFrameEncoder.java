@@ -22,6 +22,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import nats.NatsException;
 import org.codehaus.jackson.map.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
 
@@ -29,6 +31,8 @@ import java.nio.charset.Charset;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ClientFrameEncoder extends MessageToByteEncoder<ClientFrame> {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClientFrameEncoder.class);
 
 	private static final Charset UTF8 = Charset.forName("utf-8");
 
@@ -47,19 +51,21 @@ public class ClientFrameEncoder extends MessageToByteEncoder<ClientFrame> {
 	}
 
 	@Override
-	public void encode(ChannelHandlerContext ctx, ClientFrame msg, ByteBuf out) throws Exception {
-		if (msg instanceof ClientConnectFrame) {
-			final ClientConnectFrame message = (ClientConnectFrame) msg;
+	public void encode(ChannelHandlerContext ctx, ClientFrame frame, ByteBuf out) throws Exception {
+		LOGGER.debug("Encoding '{}'", frame);
+
+		if (frame instanceof ClientConnectFrame) {
+			final ClientConnectFrame connectFrame = (ClientConnectFrame) frame;
 			out.writeBytes(CMD_CONNECT);
 			out.writeByte(' ');
-			mapper. writeValue(new ByteBufOutputStream(out), message.getBody());
+			mapper. writeValue(new ByteBufOutputStream(out), connectFrame.getBody());
 			out.writeBytes(ByteBufUtil.CRLF);
-		} else if (msg instanceof ClientPingFrame) {
+		} else if (frame instanceof ClientPingFrame) {
 			out.writeBytes(PING);
-		} else if (msg instanceof ClientPongFrame) {
+		} else if (frame instanceof ClientPongFrame) {
 			out.writeBytes(PONG);
-		} else if (msg instanceof ClientPublishFrame) {
-			final ClientPublishFrame message = (ClientPublishFrame) msg;
+		} else if (frame instanceof ClientPublishFrame) {
+			final ClientPublishFrame message = (ClientPublishFrame) frame;
 			out.writeBytes(CMD_PUBLISH);
 			out.writeByte(' ');
 
@@ -77,8 +83,8 @@ public class ClientFrameEncoder extends MessageToByteEncoder<ClientFrame> {
 			out.writeBytes(ByteBufUtil.CRLF);
 			out.writeBytes(bodyBytes);
 			out.writeBytes(ByteBufUtil.CRLF);
-		} else if (msg instanceof ClientSubscribeFrame) {
-			final ClientSubscribeFrame message = (ClientSubscribeFrame) msg;
+		} else if (frame instanceof ClientSubscribeFrame) {
+			final ClientSubscribeFrame message = (ClientSubscribeFrame) frame;
 			out.writeBytes(CMD_SUBSCRIBE);
 			out.writeByte(' ');
 			out.writeBytes(message.getSubject().getBytes(UTF8));
@@ -90,8 +96,8 @@ public class ClientFrameEncoder extends MessageToByteEncoder<ClientFrame> {
 			}
 			out.writeBytes(message.getId().getBytes(UTF8));
 			out.writeBytes(ByteBufUtil.CRLF);
-		} else if (msg instanceof ClientUnsubscribeFrame) {
-			final ClientUnsubscribeFrame message = (ClientUnsubscribeFrame) msg;
+		} else if (frame instanceof ClientUnsubscribeFrame) {
+			final ClientUnsubscribeFrame message = (ClientUnsubscribeFrame) frame;
 			out.writeBytes(CMD_UNSUBSCRIBE);
 			out.writeByte(' ');
 			out.writeBytes(message.getId().getBytes(UTF8));
@@ -102,7 +108,7 @@ public class ClientFrameEncoder extends MessageToByteEncoder<ClientFrame> {
 			}
 			out.writeBytes(ByteBufUtil.CRLF);
 		} else {
-			throw new NatsException("Unable to encode client message of type " + msg.getClass().getName());
+			throw new NatsException("Unable to encode client message of type " + frame.getClass().getName());
 		}
 	}
 }

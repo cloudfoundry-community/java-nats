@@ -23,7 +23,8 @@
 
 		<jackson.version>1.9.8</jackson.version>
 		<slf4j.version>1.6.5</slf4j.version>
-		<netty.version>4.0.0.Alpha5</netty.version>
+		<logback.version>1.0.6</logback.version>
+		<netty.version>4.0.0.Alpha8</netty.version>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<testng.version>6.3.1</testng.version>
 	</properties>
@@ -75,6 +76,11 @@
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
 				<version>${slf4j.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>ch.qos.logback</groupId>
+				<artifactId>logback-classic</artifactId>
+				<version>${logback.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.github.mheath</groupId>

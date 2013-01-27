@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -40,10 +41,11 @@ public class DefaultSubscription implements Subscription {
 	private final String queueGroup;
 	private final Integer maxMessages;
 
-	protected DefaultSubscription(String subject, String queueGroup, Integer maxMessages) {
+	protected DefaultSubscription(String subject, String queueGroup, Integer maxMessages, MessageHandler... messageHandlers) {
 		this.subject = subject;
 		this.queueGroup = queueGroup;
 		this.maxMessages = maxMessages;
+		Collections.addAll(handlers, messageHandlers);
 	}
 
 	@Override

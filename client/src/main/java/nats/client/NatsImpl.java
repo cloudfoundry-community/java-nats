@@ -33,6 +33,7 @@ import nats.codec.ClientCodec;
 import nats.codec.ClientConnectFrame;
 import nats.codec.ClientPublishFrame;
 import nats.codec.ClientSubscribeFrame;
+import nats.codec.ClientUnsubscribeFrame;
 import nats.codec.ConnectBody;
 import nats.codec.ServerErrorFrame;
 import nats.codec.ServerInfoFrame;
@@ -47,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ThreadLocalRandom;
@@ -56,6 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
+// TODO Add executor for calling message handler callbacks
 class NatsImpl implements Nats {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NatsImpl.class);
@@ -68,7 +71,6 @@ class NatsImpl implements Nats {
 	 * The current Netty {@link Channel} used for communicating with the NATS server. This field should never be null
 	 * after the constructor has finished.
 	 */
-	// TODO Audit that closed and lock are accessed with lock
 	// Must hold monitor #lock to access
 	private Channel channel;
 
@@ -101,6 +103,9 @@ class NatsImpl implements Nats {
 	 */
 	private final Map<String, NatsSubscription> subscriptions = new HashMap<>();
 
+
+	final List<ConnectionStateListener> listeners = new ArrayList<>();
+
 	/**
 	 * Counter used for obtaining subscription ids. Each subscription must have its own unique id that is sent to the
 	 * NATS server to uniquely identify each subscription..
@@ -131,6 +136,8 @@ class NatsImpl implements Nats {
 		reconnectTimeWait = connector.reconnectWaitTime;
 		pedantic = connector.pedantic;
 		maxFrameSize = connector.maxFrameSize;
+
+		listeners.addAll(connector.listeners);
 
 		// Start connection to server
 		connect();
@@ -248,25 +255,25 @@ class NatsImpl implements Nats {
 	}
 
 	@Override
-	public Subscription subscribe(String subject) {
-		return subscribe(subject, null, null);
+	public Subscription subscribe(String subject, MessageHandler... messageHandlers) {
+		return subscribe(subject, null, null, messageHandlers);
 	}
 
 	@Override
-	public Subscription subscribe(String subject, String queueGroup) {
-		return subscribe(subject, queueGroup, null);
+	public Subscription subscribe(String subject, String queueGroup, MessageHandler... messageHandlers) {
+		return subscribe(subject, queueGroup, null, messageHandlers);
 	}
 
 	@Override
-	public Subscription subscribe(String subject, Integer maxMessages) {
-		return subscribe(subject, null, maxMessages);
+	public Subscription subscribe(String subject, Integer maxMessages, MessageHandler... messageHandlers) {
+		return subscribe(subject, null, maxMessages, messageHandlers);
 	}
 
 	@Override
-	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages) {
+	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages, MessageHandler... messageHandlers) {
 		assertNatsOpen();
 		final String id = Integer.toString(subscriptionId.incrementAndGet());
-		final NatsSubscription subscription = new NatsSubscription(subject, queueGroup, maxMessages, id);
+		final NatsSubscription subscription = createSubscription(id, subject, queueGroup, maxMessages, messageHandlers);
 
 		synchronized (lock) {
 			subscriptions.put(id, subscription);
@@ -330,15 +337,64 @@ class NatsImpl implements Nats {
 	}
 
 	private void assertNatsOpen() {
-		if (closed) {
+		if (isClosed()) {
 			throw new NatsClosedException();
 		}
 	}
 
+	private void fireStateChange(final ConnectionStateListener.State state) {
+		for (final ConnectionStateListener listener : listeners) {
+			try {
+				listener.onConnectionStateChange(this, state);
+			} catch (Throwable t) {
+				LOGGER.error("Error invoking connection state listener.", t);
+			}
+		}
+	}
+
+	private NatsSubscription createSubscription(final String id, final String subject, String queueGroup, final Integer maxMessages, final MessageHandler... messageHandlers) {
+		return new NatsSubscription(subject, queueGroup, maxMessages, id, messageHandlers) {
+			@Override
+			public void close() {
+				super.close();
+				synchronized (lock) {
+					subscriptions.remove(id);
+					if (serverReady) {
+						channel.write(new ClientUnsubscribeFrame(id));
+					}
+				}
+			}
+
+			@Override
+			protected Message createMessage(String subject, String body, String queueGroup, final String replyTo) {
+				if (replyTo == null || replyTo.trim().length() == 0) {
+					return new DefaultMessage(subject, body, queueGroup, false);
+				}
+				return new DefaultMessage(subject, body,queueGroup, true) {
+					@Override
+					public void reply(String body) throws UnsupportedOperationException {
+						publish(replyTo, body);
+					}
+
+					@Override
+					public void reply(final String body, long delay, TimeUnit timeUnit) throws UnsupportedOperationException {
+						eventLoopGroup.next().schedule(new Runnable() {
+							@Override
+							public void run() {
+								publish(replyTo, body);
+							}
+						}, delay, timeUnit);
+						super.reply(body, delay, timeUnit);
+					}
+				};
+			}
+		};
+	}
+
 	private class NatsSubscription extends DefaultSubscription {
 		final String id;
-		protected NatsSubscription(String subject, String queueGroup, Integer maxMessages, String id) {
-			super(subject, queueGroup, maxMessages);
+		protected NatsSubscription(String subject, String queueGroup, Integer maxMessages, String id, MessageHandler... messageHandlers) {
+			super(subject, queueGroup, maxMessages, messageHandlers);
 			this.id = id;
 		}
 
@@ -350,7 +406,7 @@ class NatsImpl implements Nats {
 	private class NatsChannelInitializer extends ChannelInitializer<SocketChannel> {
 
 		@Override
-		public void initChannel(SocketChannel ch) throws Exception {
+		public void initChannel(SocketChannel channel) throws Exception {
 			// TODO Add debug logging to codec
 			final ChannelPipeline pipeline = channel.pipeline();
 			pipeline.addLast("codec", new ClientCodec(maxFrameSize));
@@ -379,8 +435,14 @@ class NatsImpl implements Nats {
 
 				@Override
 				protected void okResponse(ChannelHandlerContext context, ServerOkFrame okFrame) {
+					LOGGER.debug("Server ready");
 					synchronized (lock) {
-					// Resubscribe when the channel opens.
+						if (serverReady) {
+							// TODO Remove this sanity check after we've done a lot more testing.
+							throw new IllegalStateException("We shouldn't be receiving a +OK frame.");
+						}
+						serverReady = true;
+						// Resubscribe when the channel opens.
 						for (NatsSubscription subscription : subscriptions.values()) {
 							writeSubscription(subscription);
 						}
@@ -389,6 +451,7 @@ class NatsImpl implements Nats {
 							context.write(publish);
 						}
 					}
+					fireStateChange(ConnectionStateListener.State.SERVERY_READY);
 				}
 
 				@Override
@@ -398,13 +461,15 @@ class NatsImpl implements Nats {
 
 				@Override
 				public void channelActive(ChannelHandlerContext ctx) throws Exception {
-					// TODO Fire connection state changed
+					fireStateChange(ConnectionStateListener.State.CONNECTED);
 				}
 
 				@Override
 				public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-					// TODO Fire connection state changed
-					// TODO Change flag to indicate that the server is not ready
+					synchronized (lock) {
+						serverReady = false;
+					}
+					fireStateChange(ConnectionStateListener.State.DISCONNECTED);
 					scheduleReconnect();
 				}
 

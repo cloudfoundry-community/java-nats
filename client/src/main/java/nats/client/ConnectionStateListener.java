@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -14,28 +14,19 @@
  *   limitations under the License.
  *
  */
-package nats.codec;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import nats.NatsException;
-import org.codehaus.jackson.map.ObjectMapper;
-
-import java.io.IOException;
+package nats.client;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientConnectMessage implements ClientMessage, ClientRequest {
+public interface ConnectionStateListener {
 
-	private final ConnectBody body;
-
-	public ClientConnectMessage(ConnectBody body) {
-		this.body = body;
+	public enum State {
+		CONNECTED,
+		SERVERY_READY,
+		DISCONNECTED
 	}
 
-	public ConnectBody getBody() {
-		return body;
-	}
+	void onConnectionStateChange(Nats nats, State state);
 
 }

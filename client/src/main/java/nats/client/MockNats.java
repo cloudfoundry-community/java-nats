@@ -68,23 +68,23 @@ public class MockNats implements Nats {
 	}
 
 	@Override
-	public Subscription subscribe(String subject) {
-		return subscribe(subject, null, null);
+	public Subscription subscribe(String subject, MessageHandler... messageHandlers) {
+		return subscribe(subject, null, null, messageHandlers);
 	}
 
 	@Override
-	public Subscription subscribe(String subject, String queueGroup) {
-		return subscribe(subject, queueGroup, null);
+	public Subscription subscribe(String subject, String queueGroup, MessageHandler... messageHandlers) {
+		return subscribe(subject, queueGroup, null, messageHandlers);
 	}
 
 	@Override
-	public Subscription subscribe(String subject, Integer maxMessages) {
-		return subscribe(subject, null, maxMessages);
+	public Subscription subscribe(String subject, Integer maxMessages, MessageHandler... messageHandlers) {
+		return subscribe(subject, null, maxMessages, messageHandlers);
 	}
 
 	@Override
-	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages) {
-		final DefaultSubscription subscription = new DefaultSubscription(subject, queueGroup, maxMessages);
+	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages, MessageHandler... messageHandlers) {
+		final DefaultSubscription subscription = new DefaultSubscription(subject, queueGroup, maxMessages, messageHandlers);
 		Collection<DefaultSubscription> mockSubscriptions = subscriptions.get(subject);
 		if (mockSubscriptions == null) {
 			mockSubscriptions = new ArrayList<>();

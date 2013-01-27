@@ -17,6 +17,8 @@
 package nats.codec;
 
 import io.netty.buffer.ByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,6 +29,8 @@ import java.util.regex.Pattern;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ServerFrameDecoder.class);
 
 	// Regular expressions used for parsing server messages
 	private static final Pattern MSG_PATTERN = Pattern.compile("^MSG\\s+(\\S+)\\s+(\\S+)\\s+((\\S+)[^\\S\\r\\n]+)?(\\d+)", Pattern.CASE_INSENSITIVE);
@@ -45,6 +49,8 @@ public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
 	}
 
 	protected ServerFrame decodeCommand(String command, ByteBuf in) {
+		LOGGER.debug("Decoding '{}'", command);
+
 		Matcher matcher = MSG_PATTERN.matcher(command);
 		if (matcher.matches()) {
 			final String subject = matcher.group(1);

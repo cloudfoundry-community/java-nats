@@ -17,6 +17,8 @@
 package nats.codec;
 
 import io.netty.buffer.ByteBuf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.regex.Pattern;
 
@@ -24,6 +26,8 @@ import java.util.regex.Pattern;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class ClientFrameDecoder extends AbstractFrameDecoder<ClientFrame> {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(ClientFrameDecoder.class);
 
 	public static final String CMD_CONNECT = "CONNECT";
 	public static final String CMD_PUBLISH = "PUB";
@@ -35,6 +39,8 @@ public class ClientFrameDecoder extends AbstractFrameDecoder<ClientFrame> {
 
 	@Override
 	protected ClientFrame decodeCommand(String command, ByteBuf in) {
+		LOGGER.debug("Decoding '{}'", command);
+
 		// CONNECT
 		if (command.startsWith(CMD_CONNECT)) {
 			final String body = command.substring(CMD_CONNECT.length()).trim();

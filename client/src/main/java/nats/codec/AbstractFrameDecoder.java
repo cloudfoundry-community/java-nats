@@ -31,7 +31,7 @@ abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecode
 	private final int maxMessageSize;
 
 	protected AbstractFrameDecoder() {
-		this(Constants.DEFAULT_MAX_MESSAGE_SIZE);
+		this(Constants.DEFAULT_MAX_FRAME_SIZE);
 	}
 
 	protected AbstractFrameDecoder(int maxMessageSize) {

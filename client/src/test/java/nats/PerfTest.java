@@ -32,7 +32,7 @@ import java.util.concurrent.CountDownLatch;
  */
 public class PerfTest {
 	public static void main(String[] args) throws Exception {
-		final NatsConnector builder = new NatsConnector().addHost("nats://localhost").debug(true);
+		final NatsConnector builder = new NatsConnector().addHost("nats://localhost");
 		final Nats sender = builder.connect();
 		for (int i = 100; i <= 1000; i += 100) {
 			final Collection<Nats> connections = new ArrayList<Nats>(i);
@@ -76,9 +76,8 @@ public class PerfTest {
 		return System.currentTimeMillis() - start;
 	}
 
-	private static String alphabet = "abcdefghijklmnopqrstuvwxyz";
-
 	private static String createMessage(int size) {
+		final String alphabet = "abcdefghijklmnopqrstuvwxyz";
 		char[] message = new char[size];
 		for (int i = 0; i < size; i++) {
 			message[i] = alphabet.charAt(i % alphabet.length());

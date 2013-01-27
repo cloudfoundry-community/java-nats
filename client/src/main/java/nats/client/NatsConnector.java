@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-// TODO Add support for a connection state listener
 public class NatsConnector {
 	List<URI> hosts = new ArrayList<>();
 	boolean automaticReconnect = true;
@@ -35,12 +34,13 @@ public class NatsConnector {
 	boolean pedantic = false;
 	EventLoopGroup eventLoopGroup;
 	int maxFrameSize = Constants.DEFAULT_MAX_FRAME_SIZE;
+	final List<ConnectionStateListener> listeners = new ArrayList<>();
 
 	/**
 	 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
 	 *
 	 * @param uri a Nats URI referencing a Nats server.
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector addHost(URI uri) {
 		if (!Constants.PROTOCOL.equalsIgnoreCase(uri.getScheme())) {
@@ -54,7 +54,7 @@ public class NatsConnector {
 	 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
 	 *
 	 * @param uri a Nats URI referencing a Nats server.
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector addHost(String uri) {
 		return addHost(URI.create(uri));
@@ -66,7 +66,7 @@ public class NatsConnector {
 	 *
 	 * @param automaticReconnect whether a reconnect should be attempted automatically if the Nats server
 	 *                           connection fails.
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector automaticReconnect(boolean automaticReconnect) {
 		this.automaticReconnect = automaticReconnect;
@@ -77,7 +77,7 @@ public class NatsConnector {
 	 * Specifies the Netty {@link EventLoopGroup} to use for connecting to the Nats server(s). (optional)
 	 *
 	 * @param eventLoopGroup the Netty {@code ChannelFactory} to use for connecting to the Nats server(s)
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector eventLoopGroup(EventLoopGroup eventLoopGroup) {
 		this.eventLoopGroup = eventLoopGroup;
@@ -90,7 +90,7 @@ public class NatsConnector {
 	 *
 	 * @param time the amount of time to wait between connection attempts.
 	 * @param unit the time unit of the {@code time} argument
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector reconnectWaitTime(long time, TimeUnit unit) {
 		this.reconnectWaitTime = unit.toMillis(time);
@@ -101,7 +101,7 @@ public class NatsConnector {
 	 * Indicates whether the server should do extra checking, mostly around properly formed subjects.
 	 *
 	 * @param pedantic
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector pedantic(boolean pedantic) {
 		this.pedantic = pedantic;
@@ -112,10 +112,24 @@ public class NatsConnector {
 	 * Specified the maximum message size that can be received by the {@code} Nats instance. Defaults to 1MB.
 	 *
 	 * @param maxFrameSize the maximum message size that can be received by the {@code} Nats instance.
-	 * @return this {@code Builder} instance.
+	 * @return this connector.
 	 */
 	public NatsConnector maxFrameSize(int maxFrameSize) {
 		this.maxFrameSize = maxFrameSize;
+		return this;
+	}
+
+	/**
+	 * Adds a {@link ConnectionStateListener} to the client. This allows you to be notified when a connection is
+	 * established, when the server is ready to process messages, and when the connection disconnects. If the
+	 * connection to the server closes unexpectedly, the client will automatically try to reconnect to the Cloud
+	 * Event Bus cluster.
+	 *
+	 * @param listener the listener to use
+	 * @return this connector.
+	 */
+	public NatsConnector addConnectionStateListener(ConnectionStateListener listener) {
+		listeners.add(listener);
 		return this;
 	}
 

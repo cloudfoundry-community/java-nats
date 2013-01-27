@@ -17,13 +17,10 @@
 package nats.client.spring;
 
 import nats.NatsException;
-import nats.NatsLogger;
-import nats.client.ExceptionHandler;
 import nats.client.Message;
 import nats.client.MessageHandler;
 import nats.client.Nats;
 import nats.client.NatsConnector;
-import org.jboss.netty.channel.ChannelFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 
@@ -42,10 +39,9 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 
 	private Collection<String> hostUris;
 	private boolean autoReconnect = true;
-	private ChannelFactory channelFactory;
-	private ExceptionHandler exceptionHandler;
-	private NatsLogger logger;
-	private int maxReconnectAttempts = -1;
+//	private ChannelFactory channelFactory;
+//	private ExceptionHandler exceptionHandler;
+//	private NatsLogger logger;
 	private long reconnectWaitTime = -1;
 
 	private Collection<SubscriptionConfig> subscriptions;
@@ -63,18 +59,15 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 			builder.addHost(uri);
 		}
 		builder.automaticReconnect(autoReconnect);
-		if (channelFactory != null) {
-			builder.channelFactory(channelFactory);
-		}
-		if (exceptionHandler != null) {
-			builder.exceptionHandler(exceptionHandler);
-		}
-		if (logger != null) {
-			builder.logger(logger);
-		}
-		if (maxReconnectAttempts > 0) {
-			builder.maxReconnectAttempts(maxReconnectAttempts);
-		}
+//		if (channelFactory != null) {
+//			builder.channelFactory(channelFactory);
+//		}
+//		if (exceptionHandler != null) {
+//			builder.exceptionHandler(exceptionHandler);
+//		}
+//		if (logger != null) {
+//			builder.logger(logger);
+//		}
 		if (reconnectWaitTime >= 0) {
 			builder.reconnectWaitTime(reconnectWaitTime, TimeUnit.MILLISECONDS);
 		}
@@ -121,22 +114,6 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 
 	public void setAutoReconnect(boolean autoReconnect) {
 		this.autoReconnect = autoReconnect;
-	}
-
-	public void setChannelFactory(ChannelFactory channelFactory) {
-		this.channelFactory = channelFactory;
-	}
-
-	public void setExceptionHandler(ExceptionHandler exceptionHandler) {
-		this.exceptionHandler = exceptionHandler;
-	}
-
-	public void setLogger(NatsLogger logger) {
-		this.logger = logger;
-	}
-
-	public void setMaxReconnectAttempts(int maxReconnectAttempts) {
-		this.maxReconnectAttempts = maxReconnectAttempts;
 	}
 
 	public void setReconnectWaitTime(long reconnectWaitTime) {
