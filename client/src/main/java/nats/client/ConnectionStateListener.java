@@ -17,13 +17,24 @@
 package nats.client;
 
 /**
+ * Interface to listen for server connection state change events.
+ *
  * @author Mike Heath <elcapo@gmail.com>
  */
 public interface ConnectionStateListener {
 
 	public enum State {
+		/**
+		 * Connection to the server has been made.
+		 */
 		CONNECTED,
+		/**
+		 * Authentication, if necessary, has been completed.
+		 */
 		SERVERY_READY,
+		/**
+		 * The connection was closed.
+		 */
 		DISCONNECTED
 	}
 
