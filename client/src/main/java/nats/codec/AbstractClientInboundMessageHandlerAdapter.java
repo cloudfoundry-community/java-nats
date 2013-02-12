@@ -53,7 +53,6 @@ public abstract class AbstractClientInboundMessageHandlerAdapter extends Channel
 
 	protected abstract void serverInfo(ChannelHandlerContext context, ServerInfoFrame infoFrame);
 
-	// TODO Determine that this only gets called in response to the CONNECT
 	protected abstract void okResponse(ChannelHandlerContext context, ServerOkFrame okFrame);
 
 	protected abstract void errorResponse(ChannelHandlerContext ctx, ServerErrorFrame errorFrame);
