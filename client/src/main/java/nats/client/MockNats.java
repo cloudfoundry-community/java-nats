@@ -16,10 +16,14 @@
  */
 package nats.client;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 /**
  * Provide a mock instance of {@link Nats} to use primarily for testing purposes. This mock Nats does not yet support
@@ -31,6 +35,19 @@ public class MockNats implements Nats {
 
 	private volatile boolean connected = true;
 	private final Map<String, Collection<DefaultSubscription>> subscriptions = new HashMap<>();
+
+	private final Executor executor = new Executor() {
+			private final Logger logger = LoggerFactory.getLogger(getClass());
+			@Override
+			public void execute(Runnable command) {
+				try {
+					command.run();
+				} catch (Exception e) {
+					logger.error("Error invoking callback", e);
+				}
+			}
+		};
+
 
 	@Override
 	public boolean isConnected() {
@@ -62,7 +79,7 @@ public class MockNats implements Nats {
 		final Collection<DefaultSubscription> mockSubscriptions = subscriptions.get(subject);
 		if (mockSubscriptions != null) {
 			for (DefaultSubscription subscription : mockSubscriptions) {
-				subscription.onMessage(subject, body, replyTo);
+				subscription.onMessage(subject, body, replyTo, executor);
 			}
 		}
 	}

@@ -18,10 +18,13 @@ package nats.client;
 
 import io.netty.channel.EventLoopGroup;
 import nats.Constants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -35,6 +38,22 @@ public class NatsConnector {
 	EventLoopGroup eventLoopGroup;
 	int maxFrameSize = Constants.DEFAULT_MAX_FRAME_SIZE;
 	final List<ConnectionStateListener> listeners = new ArrayList<>();
+
+	/**
+	 * Executor to use for invoking callbacks. By default the current thread, usually a Netty IO thread, is used to
+	 * invoke callbacks.
+	 */
+	Executor callbackExecutor = new Executor() {
+		private final Logger logger = LoggerFactory.getLogger(getClass());
+		@Override
+		public void execute(Runnable command) {
+			try {
+				command.run();
+			} catch (Exception e) {
+				logger.error("Error invoking callback", e);
+			}
+		}
+	};
 
 	/**
 	 * Adds a URI to the list of URIs that will be used to connect to a Nats server by the {@link Nats} instance.
@@ -116,6 +135,19 @@ public class NatsConnector {
 	 */
 	public NatsConnector maxFrameSize(int maxFrameSize) {
 		this.maxFrameSize = maxFrameSize;
+		return this;
+	}
+
+	/**
+	 * Specifies the executor to use for invoking callbacks such as
+	 * {@link ConnectionStateListener#onConnectionStateChange(Nats, nats.client.ConnectionStateListener.State)} and
+	 * {@link MessageHandler#onMessage(Message)}.
+	 *
+	 * @param executor the executor to use for invoking callbacks.
+	 * @return this connector.
+	 */
+	public NatsConnector calllbackExecutor(Executor executor) {
+		this.callbackExecutor = executor;
 		return this;
 	}
 

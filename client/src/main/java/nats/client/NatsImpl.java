@@ -51,6 +51,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -112,6 +113,8 @@ class NatsImpl implements Nats {
 	 */
 	private final AtomicInteger subscriptionId = new AtomicInteger();
 
+	private final Executor executor;
+
 	/**
 	 * Generates a random string used for creating a unique string. The {@code request} methods rely on this
 	 * functionality.
@@ -138,6 +141,8 @@ class NatsImpl implements Nats {
 		maxFrameSize = connector.maxFrameSize;
 
 		listeners.addAll(connector.listeners);
+
+		executor = connector.callbackExecutor;
 
 		// Start connection to server
 		connect();
@@ -342,11 +347,12 @@ class NatsImpl implements Nats {
 
 	private void fireStateChange(final ConnectionStateListener.State state) {
 		for (final ConnectionStateListener listener : listeners) {
-			try {
-				listener.onConnectionStateChange(this, state);
-			} catch (Throwable t) {
-				LOGGER.error("Error invoking connection state listener.", t);
-			}
+			executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					listener.onConnectionStateChange(NatsImpl.this, state);
+				}
+			});
 		}
 	}
 
@@ -417,7 +423,7 @@ class NatsImpl implements Nats {
 					if (subscription == null) {
 						throw new NatsException("Received a body for an unknown subscription.");
 					}
-					subscription.onMessage(frame.getSubject(), frame.getBody(), frame.getReplyTo());
+					subscription.onMessage(frame.getSubject(), frame.getBody(), frame.getReplyTo(), executor);
 				}
 
 				@Override

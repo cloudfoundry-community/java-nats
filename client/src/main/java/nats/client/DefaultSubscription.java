@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -103,19 +104,20 @@ public class DefaultSubscription implements Subscription {
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public void onMessage(String subject, String body, String replyTo) {
+	public void onMessage(String subject, String body, String replyTo, Executor executor) {
 		final int messageCount = receivedMessages.incrementAndGet();
 		if (maxMessages != null && messageCount >= maxMessages) {
 			close();
 		}
-		Message message = createMessage(subject, body, queueGroup, replyTo);
+		final Message message = createMessage(subject, body, queueGroup, replyTo);
 		synchronized (handlers) {
-			for (MessageHandler handler : handlers) {
-				try {
-					handler.onMessage(message);
-				} catch (Throwable t) {
-					LOGGER.error("Error handling message", t);
-				}
+			for (final MessageHandler handler : handlers) {
+				executor.execute(new Runnable() {
+					@Override
+					public void run() {
+						handler.onMessage(message);
+					}
+				});
 			}
 		}
 	}
