@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Mike Heath <elcapo@gmail.com>
  */
+// TODO Fix reply to behave the same way as CEB.
 public interface Message {
 
 	/**
