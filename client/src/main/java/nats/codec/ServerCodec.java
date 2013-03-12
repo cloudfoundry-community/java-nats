@@ -16,12 +16,12 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
+import io.netty.channel.CombinedChannelDuplexHandler;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ServerCodec extends CombinedChannelHandler {
+public class ServerCodec extends CombinedChannelDuplexHandler {
 
 	public ServerCodec() {
 		init(new ClientFrameDecoder(), new ServerFrameEncoder());

@@ -16,14 +16,54 @@
  */
 package nats.codec;
 
-import io.netty.channel.CombinedChannelHandler;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.MessageBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundByteHandler;
+import io.netty.channel.ChannelOutboundMessageHandler;
+import io.netty.channel.CombinedChannelDuplexHandler;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class ClientCodec extends CombinedChannelHandler {
+public class ClientCodec extends CombinedChannelDuplexHandler
+		implements ChannelInboundByteHandler, ChannelOutboundMessageHandler<ClientFrame> {
 
 	public ClientCodec(int maxMessageSize) {
 		init(new ServerFrameDecoder(maxMessageSize), new ClientFrameEncoder());
 	}
+
+	private ServerFrameDecoder decoder() {
+		return (ServerFrameDecoder) stateHandler();
+	}
+
+	private ClientFrameEncoder encoder() {
+		return (ClientFrameEncoder) operationHandler();
+	}
+
+	@Override
+	public ByteBuf newInboundBuffer(ChannelHandlerContext ctx) throws Exception {
+		return decoder().newInboundBuffer(ctx);
+	}
+
+	@Override
+	public void freeInboundBuffer(ChannelHandlerContext ctx) throws Exception {
+		decoder().freeInboundBuffer(ctx);
+	}
+
+	@Override
+	public void discardInboundReadBytes(ChannelHandlerContext ctx) throws Exception {
+		decoder().discardInboundReadBytes(ctx);
+	}
+
+	@Override
+	public MessageBuf<ClientFrame> newOutboundBuffer(ChannelHandlerContext ctx) throws Exception {
+		return encoder().newOutboundBuffer(ctx);
+	}
+
+	@Override
+	public void freeOutboundBuffer(ChannelHandlerContext ctx) throws Exception {
+		encoder().freeOutboundBuffer(ctx);
+	}
+
 }

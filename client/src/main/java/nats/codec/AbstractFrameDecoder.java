@@ -26,7 +26,7 @@ import nats.Constants;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecoder<T, Void> {
+abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecoder<Void> {
 
 	private final int maxMessageSize;
 
