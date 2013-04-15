@@ -1,5 +1,5 @@
 /*
- *   Copyright (c) 2012 Mike Heath.  All rights reserved.
+ *   Copyright (c) 2013 Mike Heath.  All rights reserved.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -37,7 +39,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
+public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, ApplicationEventPublisherAware {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NatsFactoryBean.class);
 
@@ -50,6 +52,8 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 	private long reconnectWaitTime = -1;
 
 	private Collection<SubscriptionConfig> subscriptions;
+
+	private ApplicationEventPublisher applicationEventPublisher;
 
 	@Override
 	public Nats getObject() throws Exception {
@@ -67,6 +71,24 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 		connector.automaticReconnect(autoReconnect);
 		if (connectionStateListener != null) {
 			connector.addConnectionStateListener(connectionStateListener);
+		}
+		if (applicationEventPublisher != null) {
+			connector.addConnectionStateListener(new ConnectionStateListener() {
+				@Override
+				public void onConnectionStateChange(Nats nats, State state) {
+					switch (state) {
+						case CONNECTED:
+							applicationEventPublisher.publishEvent(new NatsConnectedApplicationEvent(nats));
+							break;
+						case DISCONNECTED:
+							applicationEventPublisher.publishEvent(new NatsClosedApplicationEvent(nats));
+							break;
+						case SERVERY_READY:
+							applicationEventPublisher.publishEvent(new NatsServerReadyApplicationEvent(nats));
+							break;
+					}
+				}
+			});
 		}
 		if (eventLoopGroup != null) {
 			connector.eventLoopGroup(eventLoopGroup);
@@ -134,5 +156,10 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 
 	public void setSubscriptions(Collection<SubscriptionConfig> subscriptions) {
 		this.subscriptions = subscriptions;
+	}
+
+	@Override
+	public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+		this.applicationEventPublisher = applicationEventPublisher;
 	}
 }
