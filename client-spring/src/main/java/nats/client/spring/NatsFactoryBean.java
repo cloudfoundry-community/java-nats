@@ -23,6 +23,8 @@ import nats.client.Message;
 import nats.client.MessageHandler;
 import nats.client.Nats;
 import nats.client.NatsConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 
@@ -36,6 +38,8 @@ import java.util.concurrent.TimeUnit;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(NatsFactoryBean.class);
 
 	private Nats nats;
 
@@ -52,24 +56,25 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 		if (nats != null) {
 			return nats;
 		}
-		final NatsConnector builder = new NatsConnector();
+		LOGGER.debug("Creating NATS client");
+		final NatsConnector connector = new NatsConnector();
 		if (hostUris == null) {
 			throw new IllegalStateException("At least one host URI must be provided.");
 		}
 		for (String uri : hostUris) {
-			builder.addHost(uri);
+			connector.addHost(uri);
 		}
-		builder.automaticReconnect(autoReconnect);
+		connector.automaticReconnect(autoReconnect);
 		if (connectionStateListener != null) {
-			builder.addConnectionStateListener(connectionStateListener);
+			connector.addConnectionStateListener(connectionStateListener);
 		}
 		if (eventLoopGroup != null) {
-			builder.eventLoopGroup(eventLoopGroup);
+			connector.eventLoopGroup(eventLoopGroup);
 		}
 		if (reconnectWaitTime >= 0) {
-			builder.reconnectWaitTime(reconnectWaitTime, TimeUnit.MILLISECONDS);
+			connector.reconnectWaitTime(reconnectWaitTime, TimeUnit.MILLISECONDS);
 		}
-		nats = builder.connect();
+		nats = connector.connect();
 		for (SubscriptionConfig subscription : subscriptions) {
 			final Object bean = subscription.getBean();
 			final Method method = bean.getClass().getMethod(subscription.getMethodName(), Message.class);
@@ -102,6 +107,7 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean {
 	@Override
 	public void destroy() throws Exception {
 		if (nats != null) {
+			LOGGER.debug("Closing NATS client.");
 			nats.close();
 		}
 	}
