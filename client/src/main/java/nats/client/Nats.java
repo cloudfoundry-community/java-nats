@@ -30,7 +30,7 @@ import java.io.Closeable;
 public interface Nats extends Closeable {
 
 	/**
-	 * Indicates if this client is connected to a NATS server. This method will always return true after the
+	 * Indicates if this client is connected to a NATS server. This method will always return {@code false} after the
 	 * {@link #close()} method has been invoked. If the connection to the server is lost, the client will automatically
 	 * try to reconnect to a server unless, of course, this feature has been disabled.
 	 *
