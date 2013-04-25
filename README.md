@@ -15,7 +15,7 @@ To use the basic client in your project, add the following to your Maven pom.xml
 <dependency>
     <groupId>com.github.mheath</groupId>
     <artifactId>nats-client</artifactId>
-    <version>0.5.Beta1</version>
+    <version>0.5.Beta2</version>
 </dependency>
 ```
 
@@ -25,7 +25,7 @@ To use the Spring integration, add the following to your Maven pom.xml:
 <dependency>
     <groupId>com.github.mheath</groupId>
     <artifactId>nats-client-spring</artifactId>
-    <version>0.5.Beta1</version>
+    <version>0.5.Beta2</version>
 </dependency>
 ```
 
