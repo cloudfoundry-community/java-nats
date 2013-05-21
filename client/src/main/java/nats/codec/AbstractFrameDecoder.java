@@ -17,6 +17,7 @@
 package nats.codec;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.MessageBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
 import io.netty.handler.codec.TooLongFrameException;
@@ -39,20 +40,19 @@ abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecode
 	}
 
 	@Override
-	public final T decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
+	protected void decode(ChannelHandlerContext ctx, ByteBuf in, MessageBuf<Object> out) throws Exception {
 		int frameLength = indexOf(in, ByteBufUtil.CRLF);
 		if (frameLength >= 0) {
 			if (frameLength > maxMessageSize) {
 				in.skipBytes(frameLength + ByteBufUtil.CRLF.length);
 				throwTooLongFrameException(ctx);
-				return null;
 			} else {
 				String command = in.readBytes(frameLength).toString(CharsetUtil.UTF_8);
 				in.skipBytes(ByteBufUtil.CRLF.length);
-				return decodeCommand(command, in);
+				final T decodedCommand = decodeCommand(command, in);
+				out.add(decodedCommand);
 			}
 		}
-		return null;
 	}
 
 	protected abstract T decodeCommand(String command, ByteBuf in);
