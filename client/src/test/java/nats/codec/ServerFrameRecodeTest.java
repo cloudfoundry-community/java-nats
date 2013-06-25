@@ -17,7 +17,7 @@
 package nats.codec;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.embedded.EmbeddedByteChannel;
+import io.netty.channel.embedded.EmbeddedChannel;
 import org.testng.annotations.Test;
 
 import static org.testng.Assert.*;
@@ -87,12 +87,12 @@ public class ServerFrameRecodeTest {
 	}
 
 	protected <T extends NatsFrame> T recode(T frame) {
-		final EmbeddedByteChannel channel = new EmbeddedByteChannel(new ServerFrameEncoder(), new ServerFrameDecoder());
+		final EmbeddedChannel channel = new EmbeddedChannel(new ServerFrameEncoder(), new ServerFrameDecoder());
 
 		// Encode
 		channel.write(frame);
 		channel.checkException();
-		final ByteBuf data = channel.readOutbound();
+		final ByteBuf data = (ByteBuf)channel.readOutbound();
 
 		// Decode
 		channel.writeInbound(data);

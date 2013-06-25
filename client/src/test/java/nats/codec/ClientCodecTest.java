@@ -17,8 +17,9 @@
 package nats.codec;
 
 import io.netty.buffer.Unpooled;
-import io.netty.channel.embedded.EmbeddedByteChannel;
 import static org.testng.Assert.*;
+
+import io.netty.channel.embedded.EmbeddedChannel;
 import org.testng.annotations.Test;
 
 /**
@@ -106,7 +107,7 @@ public class ClientCodecTest {
 	}
 
 	private ServerFrame clientDecode(String frame) {
-		final EmbeddedByteChannel channel = new EmbeddedByteChannel(new ServerFrameDecoder());
+		final EmbeddedChannel channel = new EmbeddedChannel(new ServerFrameDecoder());
 		channel.writeInbound(Unpooled.wrappedBuffer(frame.getBytes()));
 		return (ServerFrame) channel.readInbound();
 	}

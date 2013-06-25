@@ -29,13 +29,14 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import nats.NatsException;
 import nats.codec.AbstractClientInboundMessageHandlerAdapter;
-import nats.codec.ClientCodec;
 import nats.codec.ClientConnectFrame;
+import nats.codec.ClientFrameEncoder;
 import nats.codec.ClientPublishFrame;
 import nats.codec.ClientSubscribeFrame;
 import nats.codec.ClientUnsubscribeFrame;
 import nats.codec.ConnectBody;
 import nats.codec.ServerErrorFrame;
+import nats.codec.ServerFrameDecoder;
 import nats.codec.ServerInfoFrame;
 import nats.codec.ServerOkFrame;
 import nats.codec.ServerPongFrame;
@@ -219,7 +220,7 @@ class NatsImpl implements Nats {
 				channel.close();
 			}
 			if (shutDownEventLoop) {
-				eventLoopGroup.shutdown();
+				eventLoopGroup.shutdownGracefully();
 			}
 			// We have to make a copy of the subscriptions because calling subscription.close() modifies the subscriptions map.
 			Collection<Subscription> subscriptionsCopy = new ArrayList<Subscription>(subscriptions.values());
@@ -412,7 +413,8 @@ class NatsImpl implements Nats {
 		@Override
 		public void initChannel(SocketChannel channel) throws Exception {
 			final ChannelPipeline pipeline = channel.pipeline();
-			pipeline.addLast("codec", new ClientCodec(maxFrameSize));
+			pipeline.addLast("decoder", new ServerFrameDecoder(maxFrameSize));
+			pipeline.addLast("encoder", new ClientFrameEncoder());
 			pipeline.addLast("handler", new AbstractClientInboundMessageHandlerAdapter() {
 				@Override
 				protected void publishedMessage(ChannelHandlerContext context, ServerPublishFrame frame) {

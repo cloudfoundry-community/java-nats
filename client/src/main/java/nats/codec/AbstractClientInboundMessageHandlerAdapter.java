@@ -17,29 +17,33 @@
 package nats.codec;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundMessageHandlerAdapter;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.MessageList;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-public abstract class AbstractClientInboundMessageHandlerAdapter extends ChannelInboundMessageHandlerAdapter<ServerFrame> {
+public abstract class AbstractClientInboundMessageHandlerAdapter extends ChannelInboundHandlerAdapter {
 
 	@Override
-	public void messageReceived(ChannelHandlerContext context, ServerFrame frame) throws Exception {
-		if (frame instanceof ServerPublishFrame) {
-			publishedMessage(context, (ServerPublishFrame) frame);
-		} else if (frame instanceof ServerPingFrame) {
-			serverPing(context);
-		} else if (frame instanceof ServerOkFrame) {
-			okResponse(context, (ServerOkFrame) frame);
-		} else if (frame instanceof ServerErrorFrame) {
-			errorResponse(context, (ServerErrorFrame) frame);
-		} else if (frame instanceof ServerPongFrame) {
-			pongResponse(context, (ServerPongFrame) frame);
-		} else if (frame instanceof ServerInfoFrame) {
-			serverInfo(context, (ServerInfoFrame) frame);
-		} else {
-			throw new Error("Received a server response of an unknown type: " + frame.getClass().getName());
+	public void messageReceived(ChannelHandlerContext context, MessageList<Object> messages) throws Exception {
+		for (Object message : messages) {
+			final ServerFrame frame = (ServerFrame) message;
+			if (frame instanceof ServerPublishFrame) {
+				publishedMessage(context, (ServerPublishFrame) frame);
+			} else if (frame instanceof ServerPingFrame) {
+				serverPing(context);
+			} else if (frame instanceof ServerOkFrame) {
+				okResponse(context, (ServerOkFrame) frame);
+			} else if (frame instanceof ServerErrorFrame) {
+				errorResponse(context, (ServerErrorFrame) frame);
+			} else if (frame instanceof ServerPongFrame) {
+				pongResponse(context, (ServerPongFrame) frame);
+			} else if (frame instanceof ServerInfoFrame) {
+				serverInfo(context, (ServerInfoFrame) frame);
+			} else {
+				throw new Error("Received a server response of an unknown type: " + frame.getClass().getName());
+			}
 		}
 	}
 
