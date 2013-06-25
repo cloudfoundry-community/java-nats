@@ -11,7 +11,7 @@
 
 	<groupId>com.github.mheath</groupId>
 	<artifactId>nats-parent</artifactId>
-	<version>0.5-SNAPSHOT</version>
+	<version>0.5.Beta3</version>
 	<packaging>pom</packaging>
 
 	<name>Java NATS</name>
