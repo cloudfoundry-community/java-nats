@@ -24,6 +24,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provide a mock instance of {@link Nats} to use primarily for testing purposes. This mock Nats does not yet support
@@ -35,6 +39,7 @@ public class MockNats implements Nats {
 
 	private volatile boolean connected = true;
 	private final Map<String, Collection<DefaultSubscription>> subscriptions = new HashMap<>();
+	private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
 
 	private final Executor executor = new Executor() {
 			private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -82,6 +87,34 @@ public class MockNats implements Nats {
 				subscription.onMessage(subject, body, replyTo, executor);
 			}
 		}
+	}
+
+	@Override
+	public Registration publish(String subject, long period, TimeUnit unit) {
+		return publish(subject, "", null, period, unit);
+	}
+
+	@Override
+	public Registration publish(String subject, String body, long period, TimeUnit unit) {
+		return publish(subject, body, null, period, unit);
+	}
+
+	@Override
+	public Registration publish(final String subject, final String body, final String replyTo, long period, TimeUnit unit) {
+		final ScheduledFuture<?> scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				if (isConnected()) {
+					publish(subject, body, replyTo);
+				}
+			}
+		}, 0l, period, unit);
+		return new Registration() {
+			@Override
+			public void remove() {
+				scheduledFuture.cancel(false);
+			}
+		};
 	}
 
 	@Override

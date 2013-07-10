@@ -16,9 +16,6 @@
  */
 package nats.client;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,8 +28,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Mike Heath <elcapo@gmail.com>
  */
 public class DefaultSubscription implements Subscription {
-
-	private static final Logger LOGGER = LoggerFactory.getLogger(DefaultSubscription.class);
 
 	private final AtomicInteger receivedMessages = new AtomicInteger();
 	private final List<MessageHandler> handlers = new ArrayList<>();
@@ -64,11 +59,11 @@ public class DefaultSubscription implements Subscription {
 	}
 
 	@Override
-	public HandlerRegistration addMessageHandler(final MessageHandler messageHandler) {
+	public Registration addMessageHandler(final MessageHandler messageHandler) {
 		synchronized (handlers) {
 			handlers.add(messageHandler);
 		}
-		return new HandlerRegistration() {
+		return new Registration() {
 			@Override
 			public void remove() {
 				synchronized (handlers) {

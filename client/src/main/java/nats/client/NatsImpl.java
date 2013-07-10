@@ -27,6 +27,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.concurrent.ScheduledFuture;
 import nats.NatsException;
 import nats.codec.AbstractClientInboundMessageHandlerAdapter;
 import nats.codec.ClientConnectFrame;
@@ -246,6 +247,35 @@ class NatsImpl implements Nats {
 
 		final ClientPublishFrame publishFrame = new ClientPublishFrame(subject, body, replyTo);
 		publish(publishFrame);
+	}
+
+	@Override
+	public Registration publish(String subject, long period, TimeUnit unit) {
+		return publish(subject, "", null, period, unit);
+	}
+
+	@Override
+	public Registration publish(String subject, String body, long period, TimeUnit unit) {
+		return publish(subject, body, null, period, unit);
+	}
+
+	@Override
+	public Registration publish(String subject, String body, String replyTo, long period, TimeUnit unit) {
+		final ClientPublishFrame publishFrame = new ClientPublishFrame(subject, body, replyTo);
+		final ScheduledFuture<?> scheduledFuture = eventLoopGroup.next().scheduleAtFixedRate(new Runnable() {
+			@Override
+			public void run() {
+				if (isConnected()) {
+					publish(publishFrame);
+				}
+			}
+		}, 0l, period, unit);
+		return new Registration() {
+			@Override
+			public void remove() {
+				scheduledFuture.cancel(false);
+			}
+		};
 	}
 
 	private void publish(ClientPublishFrame publishFrame) {

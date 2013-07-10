@@ -84,6 +84,6 @@ public interface Subscription extends AutoCloseable, Iterable<Message> {
 	 * @param messageHandler the message handler that is invoked when a message arrives
 	 * @return a handler registration
 	 */
-	HandlerRegistration addMessageHandler(MessageHandler messageHandler);
+	Registration addMessageHandler(MessageHandler messageHandler);
 
 }

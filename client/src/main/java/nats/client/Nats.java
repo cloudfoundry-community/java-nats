@@ -17,6 +17,7 @@
 package nats.client;
 
 import java.io.Closeable;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides the interface for publishing messages and subscribing to NATS subjects. This class is responsible for
@@ -53,36 +54,74 @@ public interface Nats extends Closeable {
 	void close();
 
 	/**
-	 * Publishes an empty body to the specified subject. If this {@code Nats} instance is not currently connected to
-	 * a Nats server, the body will be queued up to be published once a connection is established.
+	 * Publishes a message with an empty body to the specified subject. If this {@code Nats} instance is not currently
+	 * connected to a NATS server, the message will be queued up to be published once a connection is established.
 	 *
-	 * @param subject the subject to publish to
+	 * @param subject the subject to which the message will be published
 	 */
 	void publish(String subject);
 
 	/**
-	 * Publishes a body to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
-	 * server, the body will be queued up to be published once a connection is established.
+	 * Publishes a message with the provided body to the specified subject. If this {@code Nats} instance is not
+	 * currently connected to a NATS server, the message will be queued up to be published once a connection is
+	 * established.
 	 *
-	 * @param subject the subject to publish to
-	 * @param body the body to publish
+	 * @param subject the subject to which the message will be published
+	 * @param body    the message body to publish
 	 */
 	void publish(String subject, String body);
 
 	/**
-	 * Publishes a body to the specified subject. If this {@code Nats} instance is not currently connected to a Nats
-	 * server, the body will be queued up to be published once a connection is established.
+	 * Publishes a message with the provided body to the specified subject. Any replies to this message will be sent to
+	 * the specified reply to subject. If this {@code Nats} instance is not currently connected to a NATS server, the
+	 * message will be queued up to be published once a connection is established.
 	 *
-	 * @param subject the subject to publish to
-	 * @param body the body to publish
+	 * @param subject the subject to which the message will be published
+	 * @param body    the message body to publish
 	 * @param replyTo the subject replies to this body should be sent to.
 	 */
 	void publish(String subject, String body, String replyTo);
 
 	/**
+	 * Publishes a message with an empty body to the specified subject on a recurring basis according to the specified
+	 * period. If this {@code Nats} instance is not currently connected to a NATS server, the message will not be sent
+	 * or queued up.
+	 *
+	 * @param subject the subject to which the message will be published
+	 * @param period the period between successive publishes
+	 * @param unit the time unit of the period parameter
+	 */
+	Registration publish(String subject, long period, TimeUnit unit);
+
+	/**
+	 * Publishes a message with the provided body to the specified subject on a recurring basis according to the
+	 * specified period. If this {@code Nats} instance is not currently connected to a NATS server, the message will
+	 * not be sent or queued up.
+	 *
+	 * @param subject the subject to which the message will be published
+	 * @param body    the message body to publish
+	 * @param period the period between successive publishes
+	 * @param unit the time unit of the period parameter
+	 */
+	Registration publish(String subject, String body, long period, TimeUnit unit);
+
+	/**
+	 * Publishes a message with the provided body to the specified subject. Any replies to this message will be sent to
+	 * the specified reply to subject. If this {@code Nats} instance is not currently connected to a NATS server, the
+	 * message will not be sent or queued up.
+	 *
+	 * @param subject the subject to which the message will be published
+	 * @param body    the message body to publish
+	 * @param replyTo the subject replies to this body should be sent to.
+	 * @param period the period between successive publishes
+	 * @param unit the time unit of the period parameter
+	 */
+	Registration publish(String subject, String body, String replyTo, long period, TimeUnit unit);
+
+	/**
 	 * Subscribes to the specified subject.
 	 *
-	 * @param subject the subject to subscribe to.
+	 * @param subject the subject to subscribe to
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
@@ -103,7 +142,7 @@ public interface Nats extends Closeable {
 	 * Subscribes to the specified subject and will automatically unsubscribe after the specified number of messages
 	 * arrives.
 	 *
-	 * @param subject     the subject to subscribe to
+	 * @param subject         the subject to subscribe to
 	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 * @see #subscribe(String, String, Integer,MessageHandler...)
@@ -127,8 +166,8 @@ public interface Nats extends Closeable {
 	 * <p>All subscriptions with the same {@code queueGroup} will form a queue group. Each body will be delivered to
 	 * only one subscriber per queue group.
 	 *
-	 * @param subject     the subject to subscribe to
-	 * @param queueGroup  the queue group the subscription participates in
+	 * @param subject         the subject to subscribe to
+	 * @param queueGroup      the queue group the subscription participates in
 	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 */
