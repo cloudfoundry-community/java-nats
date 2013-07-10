@@ -1,1 +1,1 @@
-http\://mheath.github.com/jnats/schema/spring/nats-0.5.xsd=nats/client/spring/config/nats-0.5.xsd
+http\://cloudfoundry-community.github.io/java-nats/schema/spring/nats/nats-0.5.xsd=nats/client/spring/config/nats-0.5.xsd

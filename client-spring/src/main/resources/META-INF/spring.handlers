@@ -1,2 +1,2 @@
-http\://mheath.github.com/jnats/schema/spring/nats=nats.client.spring.config.NatsNamespaceHandler
+http\://cloudfoundry-community.github.io/java-nats/schema/spring/nats=nats.client.spring.config.NatsNamespaceHandler
 
