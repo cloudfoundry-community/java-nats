@@ -45,7 +45,7 @@ public class ServerFrameEncoder extends MessageToByteEncoder<ServerFrame> {
 
 	@Override
 	public void encode(ChannelHandlerContext ctx, ServerFrame frame, ByteBuf out) throws Exception {
-		LOGGER.debug("Encoding {}", frame);
+		LOGGER.trace("Encoding {}", frame);
 		if (frame instanceof ServerPublishFrame) {
 			final ServerPublishFrame publishFrame = (ServerPublishFrame) frame;
 			out.writeBytes(CMD_PUB);

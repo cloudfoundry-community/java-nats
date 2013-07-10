@@ -52,7 +52,7 @@ public class ClientFrameEncoder extends MessageToByteEncoder<ClientFrame> {
 
 	@Override
 	public void encode(ChannelHandlerContext ctx, ClientFrame frame, ByteBuf out) throws Exception {
-		LOGGER.debug("Encoding '{}'", frame);
+		LOGGER.trace("Encoding '{}'", frame);
 
 		if (frame instanceof ClientConnectFrame) {
 			final ClientConnectFrame connectFrame = (ClientConnectFrame) frame;

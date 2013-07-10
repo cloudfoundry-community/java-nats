@@ -39,7 +39,7 @@ public class ClientFrameDecoder extends AbstractFrameDecoder<ClientFrame> {
 
 	@Override
 	protected ClientFrame decodeCommand(String command, ByteBuf in) {
-		LOGGER.debug("Decoding '{}'", command);
+		LOGGER.trace("Decoding '{}'", command);
 
 		// CONNECT
 		if (command.startsWith(CMD_CONNECT)) {

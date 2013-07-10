@@ -49,7 +49,7 @@ public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
 	}
 
 	protected ServerFrame decodeCommand(String command, ByteBuf in) {
-		LOGGER.debug("Decoding '{}'", command);
+		LOGGER.trace("Decoding '{}'", command);
 
 		Matcher matcher = MSG_PATTERN.matcher(command);
 		if (matcher.matches()) {
