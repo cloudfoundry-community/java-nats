@@ -24,7 +24,7 @@
 		<jackson.version>1.9.8</jackson.version>
 		<slf4j.version>1.6.5</slf4j.version>
 		<logback.version>1.0.6</logback.version>
-		<netty.version>4.0.0.CR6</netty.version>
+		<netty.version>4.0.4.Final</netty.version>
 		<spring.version>3.1.1.RELEASE</spring.version>
 		<testng.version>6.3.1</testng.version>
 	</properties>

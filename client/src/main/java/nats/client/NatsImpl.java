@@ -282,6 +282,7 @@ class NatsImpl implements Nats {
 		synchronized (lock) {
 			if (serverReady) {
 				channel.write(publishFrame);
+				channel.flush();
 			} else {
 				publishQueue.add(publishFrame);
 			}
@@ -322,6 +323,7 @@ class NatsImpl implements Nats {
 		synchronized (lock) {
 			if (serverReady) {
 				channel.write(new ClientSubscribeFrame(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
+				channel.flush();
 			}
 		}
 	}
@@ -396,6 +398,7 @@ class NatsImpl implements Nats {
 					subscriptions.remove(id);
 					if (serverReady) {
 						channel.write(new ClientUnsubscribeFrame(id));
+						channel.flush();
 					}
 				}
 			}
@@ -467,7 +470,8 @@ class NatsImpl implements Nats {
 				protected void serverInfo(ChannelHandlerContext context, ServerInfoFrame infoFrame) {
 					// TODO Parse info body for alternative servers to connect to as soon as NATS' clustering support starts sending this.
 					final ServerList.Server server = serverList.getCurrentServer();
-					context.write(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false))).addListener(new ChannelFutureListener() {
+					final Channel channel = context.channel();
+					channel.write(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false))).addListener(new ChannelFutureListener() {
 						@Override
 						public void operationComplete(ChannelFuture future) throws Exception {
 							LOGGER.debug("Server ready");
@@ -478,13 +482,16 @@ class NatsImpl implements Nats {
 									writeSubscription(subscription);
 								}
 							// Resend pending publish commands.
+								final Channel channel = future.channel();
 								for (ClientPublishFrame publish : publishQueue) {
-									future.channel().write(publish);
+									channel.write(publish);
 								}
+								channel.flush();
 							}
 							fireStateChange(ConnectionStateListener.State.SERVERY_READY);
 						}
 					});
+					channel.flush();
 				}
 
 				@Override

@@ -91,6 +91,7 @@ public class ServerFrameRecodeTest {
 
 		// Encode
 		channel.write(frame);
+		channel.flush();
 		channel.checkException();
 		final ByteBuf data = (ByteBuf)channel.readOutbound();
 

@@ -89,7 +89,7 @@ public class ClientFrameRecodeTest {
 
 	@Test
 	public void clientUnsubscribeFrame() {
-		final String id = "somdId";
+		final String id = "someId";
 		final Integer maxMessages = 23;
 		final ClientUnsubscribeFrame recodedFrame = recode(new ClientUnsubscribeFrame(id));
 		assertEquals(recodedFrame.getId(), id);
@@ -105,6 +105,7 @@ public class ClientFrameRecodeTest {
 
 		// Encode
 		channel.write(frame);
+		channel.flush();
 		channel.checkException();
 		final ByteBuf data = (ByteBuf) channel.readOutbound();
 

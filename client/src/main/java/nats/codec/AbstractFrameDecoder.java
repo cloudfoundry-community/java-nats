@@ -18,11 +18,12 @@ package nats.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.MessageList;
 import io.netty.handler.codec.ReplayingDecoder;
 import io.netty.handler.codec.TooLongFrameException;
 import io.netty.util.CharsetUtil;
 import nats.Constants;
+
+import java.util.List;
 
 /**
  * @author Mike Heath <elcapo@gmail.com>
@@ -40,7 +41,7 @@ abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecode
 	}
 
 	@Override
-	protected void decode(ChannelHandlerContext ctx, ByteBuf in, MessageList<Object> out) throws Exception {
+	protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
 		int frameLength = indexOf(in, ByteBufUtil.CRLF);
 		if (frameLength >= 0) {
 			if (frameLength > maxMessageSize) {
