@@ -9,14 +9,14 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.github.mheath</groupId>
+	<groupId>com.github.cloudfoundry-community</groupId>
 	<artifactId>nats-parent</artifactId>
 	<version>0.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
 	<name>Java NATS</name>
 	<description>Java support for NATS.</description>
-	<url>https://github.com/mheath/jnats</url>
+	<url>https://github.com/cloudfoundry-community/java-nats</url>
 
 	<properties>
 		<java.version>1.7</java.version>
@@ -83,7 +83,7 @@
 				<version>${logback.version}</version>
 			</dependency>
 			<dependency>
-				<groupId>com.github.mheath</groupId>
+				<groupId>com.github.cloudfoundry-community</groupId>
 				<artifactId>nats-client</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -99,9 +99,9 @@
 	</licenses>
 
 	<scm>
-		<url>scm:git:https://mheath@github.com/mheath/jnats.git</url>
-		<connection>scm:git:https://github.com/mheath/jnats</connection>
-		<developerConnection>scm:git:https://github.com/mheath/jnats</developerConnection>
+		<url>scm:git:https://github.com/cloudfoundry-community/java-nats.git</url>
+		<connection>scm:git:https://github.com/cloudfoundry-community/java-nats</connection>
+		<developerConnection>scm:git:https://github.com/cloudfoundry-community/java-nats</developerConnection>
 	</scm>
 
 	<developers>

@@ -1,4 +1,4 @@
-[NATS API Documentation](http://mheath.github.com/jnats/apidocs/0.3/client/index.html)
+[NATS API Documentation](http://cloudfoundry-community.github.com/java-nats/apidocs/0.5.Beta6/client/index.html)
 
 This NATS client is thread-safe.
 
