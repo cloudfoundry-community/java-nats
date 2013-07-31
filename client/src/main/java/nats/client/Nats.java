@@ -179,22 +179,13 @@ public interface Nats extends Closeable {
 	 *
 	 * @param subject         the subject to send the request on
 	 * @param message         the content of the request
+	 * @param timeout         the amount of time to wait for replies
+	 * @param unit            the unit of time to wait
 	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
-	 * @see #request(String, String, Integer, MessageHandler...)
+	 * @see #request(String, String, long, java.util.concurrent.TimeUnit, Integer, MessageHandler...)
 	 */
-	Request request(String subject, String message, MessageHandler... messageHandlers);
-
-	/**
-	 * Sends a request on the given subject with an empty body. Request responses can be handled using the returned
-	 * {@link Request}.
-	 *
-	 * @param subject         the subject to send the request on
-	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
-	 * @return a {@code Request} instance associated with the request.
-	 * @see #request(String, String, Integer, MessageHandler...)
-	 */
-	Request request(String subject, MessageHandler... messageHandlers);
+	Request request(String subject, String message, long timeout, TimeUnit unit, MessageHandler... messageHandlers);
 
 	/**
 	 * Sends a request body on the given subject. Request responses can be handled using the returned
@@ -212,11 +203,13 @@ public interface Nats extends Closeable {
 	 *
 	 * @param subject         the subject to send the request on
 	 * @param message         the content of the request
+	 * @param timeout         the amount of time to wait for replies
+	 * @param unit            the unit of time to wait
 	 * @param maxReplies      the maximum number of replies that the request will accept before automatically closing,
 	 *                        {@code null} for unlimited replies
 	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Request} instance associated with the request.
 	 */
-	Request request(String subject, String message, Integer maxReplies, MessageHandler... messageHandlers);
+	Request request(String subject, String message, long timeout, TimeUnit unit, Integer maxReplies, MessageHandler... messageHandlers);
 
 }

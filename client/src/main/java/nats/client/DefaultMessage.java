@@ -65,4 +65,14 @@ public class DefaultMessage implements Message {
 	public void reply(String body, long delay, TimeUnit timeUnit) throws UnsupportedOperationException {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public String toString() {
+		return "DefaultMessage{" +
+				"subject='" + subject + '\'' +
+				", body='" + body + '\'' +
+				", queueGroup='" + queueGroup + '\'' +
+				", isRequest=" + isRequest +
+				'}';
+	}
 }

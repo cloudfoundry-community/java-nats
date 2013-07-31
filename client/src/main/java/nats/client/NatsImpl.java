@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -329,23 +330,29 @@ class NatsImpl implements Nats {
 	}
 
 	@Override
-	public Request request(String subject, MessageHandler... messageHandlers) {
-		return request(subject, "", null, messageHandlers);
+	public Request request(String subject, String message, long timeout, TimeUnit unit, MessageHandler... messageHandlers) {
+		return request(subject, message, timeout, unit, null, messageHandlers);
 	}
 
 	@Override
-	public Request request(String subject, String message, MessageHandler... messageHandlers) {
-		return request(subject, message, null, messageHandlers);
-	}
-
-	@Override
-	public Request request(final String subject, String message, final Integer maxReplies, MessageHandler... messageHandlers) {
+	public Request request(final String subject, String message, long timeout, TimeUnit unit, final Integer maxReplies, MessageHandler... messageHandlers) {
 		assertNatsOpen();
+		if (message == null) {
+			throw new IllegalArgumentException("Message can NOT be null.");
+		}
 		final String inbox = createInbox();
 		final Subscription subscription = subscribe(inbox, maxReplies);
 		for (MessageHandler handler : messageHandlers) {
 			subscription.addMessageHandler(handler);
 		}
+
+		final ScheduledExecutorService scheduler = (channel == null) ? eventLoopGroup.next() : channel.eventLoop();
+		scheduler.schedule(new Runnable() {
+			@Override
+			public void run() {
+				subscription.close();
+			}
+		}, timeout, unit);
 
 		final ClientPublishFrame publishFrame = new ClientPublishFrame(subject, message, inbox);
 		publish(publishFrame);
