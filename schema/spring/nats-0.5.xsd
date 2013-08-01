@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsd:schema xmlns="http://mheath.github.com/jnats/schema/spring/nats"
+<xsd:schema xmlns="http://cloudfoundry-community.github.io/java-nats/schema/spring/nats"
             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-            targetNamespace="http://mheath.github.com/jnats/schema/spring/nats"
+            targetNamespace="http://cloudfoundry-community.github.io/java-nats/schema/spring/nats"
             elementFormDefault="qualified" attributeFormDefault="unqualified">
 
 	<xsd:element name="nats">
