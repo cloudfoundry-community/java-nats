@@ -15,7 +15,7 @@ To use the basic client in your project, add the following to your Maven pom.xml
 <dependency>
     <groupId>com.github.cloudfoundry-community</groupId>
     <artifactId>nats-client</artifactId>
-    <version>0.5.Beta5</version>
+    <version>0.5</version>
 </dependency>
 ```
 
@@ -25,7 +25,7 @@ To use the Spring integration, add the following to your Maven pom.xml:
 <dependency>
     <groupId>com.github.cloudfoundry-community</groupId>
     <artifactId>nats-client-spring</artifactId>
-    <version>0.5.Beta5</version>
+    <version>0.5</version>
 </dependency>
 ```
 
