@@ -25,8 +25,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 public abstract class AbstractClientInboundMessageHandlerAdapter extends ChannelInboundHandlerAdapter {
 
 	@Override
-	public void channelRead(ChannelHandlerContext context, Object message) throws Exception {
-		final ServerFrame frame = (ServerFrame) message;
+	public void channelRead(ChannelHandlerContext context, Object frame) throws Exception {
 		if (frame instanceof ServerPublishFrame) {
 			publishedMessage(context, (ServerPublishFrame) frame);
 		} else if (frame instanceof ServerPingFrame) {
@@ -47,7 +46,7 @@ public abstract class AbstractClientInboundMessageHandlerAdapter extends Channel
 	protected abstract void publishedMessage(ChannelHandlerContext context, ServerPublishFrame frame);
 
 	protected void serverPing(ChannelHandlerContext context) {
-		context.write(ClientPongFrame.PONG);
+		context.writeAndFlush(ClientPongFrame.PONG);
 	}
 
 	protected abstract void pongResponse(ChannelHandlerContext context, ServerPongFrame pongFrame);
