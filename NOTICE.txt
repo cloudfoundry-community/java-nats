@@ -41,5 +41,3 @@ HOMEPAGE: http://jackson.codehaus.org/
 SLF4j
 LICENSE: MIT (http://www.slf4j.org/license.html)
 HOMEPAGE: http://www.slf4j.org/
-
-Snake YAML
