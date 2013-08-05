@@ -34,6 +34,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -50,6 +51,7 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, Appli
 	private EventLoopGroup eventLoopGroup;
 	private ConnectionStateListener connectionStateListener;
 	private long reconnectWaitTime = -1;
+	private Executor callbackExecutor;
 
 	private Collection<SubscriptionConfig> subscriptions;
 
@@ -72,6 +74,10 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, Appli
 		if (connectionStateListener != null) {
 			connector.addConnectionStateListener(connectionStateListener);
 		}
+		if (callbackExecutor != null) {
+			connector.calllbackExecutor(callbackExecutor);
+		}
+
 		if (applicationEventPublisher != null) {
 			connector.addConnectionStateListener(new ConnectionStateListener() {
 				@Override
@@ -156,6 +162,10 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, Appli
 
 	public void setSubscriptions(Collection<SubscriptionConfig> subscriptions) {
 		this.subscriptions = subscriptions;
+	}
+
+	public void setCallbackExecutor(Executor callbackExecutor) {
+		this.callbackExecutor = callbackExecutor;
 	}
 
 	@Override

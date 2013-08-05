@@ -37,8 +37,9 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 
 	static final String ATTRIBUTE_ID = "id";
 	static final String ATTRIBUTE_AUTO_RECONNECT = "auto-reconnect";
-	static final String ATTRIBUTE_EVENT_LOOP_GROUP_REF = "event-loop-group-ref";
+	static final String ATTRIBUTE_CALLBACK_EXECUTOR_REF = "callback-executor-ref";
 	static final String ATTRIBUTE_CONNECTION_STATE_LISTENER_REF = "connection-state-listener-ref";
+	static final String ATTRIBUTE_EVENT_LOOP_GROUP_REF = "event-loop-group-ref";
 	static final String ATTRIBUTE_RECONNECT_WAIT_TIME = "reconnect-wait-time";
 	static final String ELEMENT_URL = "url";
 
@@ -79,6 +80,10 @@ class NatsBeanDefinitionParser implements BeanDefinitionParser {
 		final String eventLoopGroupRef = element.getAttribute(ATTRIBUTE_EVENT_LOOP_GROUP_REF);
 		if (StringUtils.hasText(eventLoopGroupRef)) {
 			builder.addPropertyReference("eventLoopGroup", eventLoopGroupRef);
+		}
+		final String callbackExecutorRef = element.getAttribute(ATTRIBUTE_CALLBACK_EXECUTOR_REF);
+		if (StringUtils.hasText(callbackExecutorRef)) {
+			builder.addPropertyReference("callbackExecutor", callbackExecutorRef);
 		}
 		final String connectionStateListenerRef = element.getAttribute(ATTRIBUTE_CONNECTION_STATE_LISTENER_REF);
 		if (StringUtils.hasText(connectionStateListenerRef)) {
