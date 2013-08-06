@@ -1,4 +1,4 @@
-[NATS API Documentation](http://cloudfoundry-community.github.com/java-nats/apidocs/0.5.Beta6/client/index.html)
+[NATS API Documentation](http://cloudfoundry-community.github.com/java-nats/apidocs/0.5.1/client/index.html)
 
 This NATS client is thread-safe.
 
@@ -21,7 +21,7 @@ nats.publish("foo", "Hello world!");
 
 
 // Requests
-nats.request("help", new MessageHandler() {
+nats.request("help", 1, TimeUnit.MINUTE, new MessageHandler() {
     @Override
     public void onMessage(Message message) {
         System.out.println("Got a response: " + message);

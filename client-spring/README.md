@@ -1,4 +1,4 @@
-[Spring NATS API Documentation](http://cloudfoundry-community.github.com/java-nats/apidocs/0.3/client-spring/index.html)
+[Spring NATS API Documentation](http://cloudfoundry-community.github.com/java-nats/apidocs/0.5.1/client-spring/index.html)
 
 ## Configuring a NATS client in Spring
 
