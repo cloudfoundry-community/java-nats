@@ -62,7 +62,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-// TODO Add executor for calling message handler callbacks
 class NatsImpl implements Nats {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NatsImpl.class);
