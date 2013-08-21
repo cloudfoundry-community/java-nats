@@ -17,6 +17,7 @@
 package nats.codec;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,7 @@ public class ClientFrameDecoder extends AbstractFrameDecoder<ClientFrame> {
 	private static final Pattern PONG_PATTERN = Pattern.compile("^PONG", Pattern.CASE_INSENSITIVE);
 
 	@Override
-	protected ClientFrame decodeCommand(String command, ByteBuf in) {
+	protected ClientFrame decodeCommand(ChannelHandlerContext context, String command, ByteBuf in) {
 		LOGGER.trace("Decoding '{}'", command);
 
 		// CONNECT

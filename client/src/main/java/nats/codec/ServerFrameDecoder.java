@@ -17,6 +17,7 @@
 package nats.codec;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,8 @@ public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
 		super(maxMessageSize);
 	}
 
-	protected ServerFrame decodeCommand(String command, ByteBuf in) {
+	@Override
+	protected ServerFrame decodeCommand(ChannelHandlerContext context, String command, ByteBuf in) {
 		LOGGER.trace("Decoding '{}'", command);
 
 		Matcher matcher = MSG_PATTERN.matcher(command);
@@ -57,6 +59,9 @@ public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
 			final String id = matcher.group(2);
 			final String replyTo = matcher.group(4);
 			final int length = Integer.valueOf(matcher.group(5));
+			if (length > getMaxMessageSize()) {
+				throwTooLongFrameException(context);
+			}
 			final ByteBuf bodyBytes = in.readBytes(length);
 			final String body = new String(bodyBytes.array());
 			in.skipBytes(ByteBufUtil.CRLF.length);

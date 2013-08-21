@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * @author Mike Heath <elcapo@gmail.com>
  */
-abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecoder<Void> {
+abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecoder<Object> {
 
 	private final int maxMessageSize;
 
@@ -41,24 +41,32 @@ abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecode
 	}
 
 	@Override
-	protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+	protected void decode(ChannelHandlerContext context, ByteBuf in, List<Object> out) throws Exception {
 		int frameLength = indexOf(in, ByteBufUtil.CRLF);
 		if (frameLength >= 0) {
 			if (frameLength > maxMessageSize) {
 				in.skipBytes(frameLength + ByteBufUtil.CRLF.length);
-				throwTooLongFrameException(ctx);
+				throwTooLongFrameException(context);
 			} else {
 				String command = in.readBytes(frameLength).toString(CharsetUtil.UTF_8);
 				in.skipBytes(ByteBufUtil.CRLF.length);
-				final T decodedCommand = decodeCommand(command, in);
+				final T decodedCommand = decodeCommand(context, command, in);
 				out.add(decodedCommand);
 			}
+		} else {
+			// Trigger a read exception on the incoming byte buffer to keep the ReplayingDecoder happy. Instead of
+			// searching for CRLF, we should read all the bytes into a buffer so that the reading triggers this exception.
+			in.readBytes(in.readableBytes() + 1);
 		}
 	}
 
-	protected abstract T decodeCommand(String command, ByteBuf in);
+	protected int getMaxMessageSize() {
+		return maxMessageSize;
+	}
 
-	private void throwTooLongFrameException(ChannelHandlerContext ctx) {
+	protected abstract T decodeCommand(ChannelHandlerContext context, String command, ByteBuf in);
+
+	protected void throwTooLongFrameException(ChannelHandlerContext ctx) {
 		ctx.fireExceptionCaught(new TooLongFrameException("message size exceeds " + maxMessageSize));
 	}
 
