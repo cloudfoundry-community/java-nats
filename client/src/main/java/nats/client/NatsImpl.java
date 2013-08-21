@@ -24,8 +24,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.ScheduledFuture;
 import nats.NatsException;
@@ -281,8 +281,7 @@ class NatsImpl implements Nats {
 	private void publish(ClientPublishFrame publishFrame) {
 		synchronized (lock) {
 			if (serverReady) {
-				channel.write(publishFrame);
-				channel.flush();
+				channel.writeAndFlush(publishFrame);
 			} else {
 				publishQueue.add(publishFrame);
 			}
@@ -322,8 +321,7 @@ class NatsImpl implements Nats {
 	private void writeSubscription(NatsSubscription subscription) {
 		synchronized (lock) {
 			if (serverReady) {
-				channel.write(new ClientSubscribeFrame(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
-				channel.flush();
+				channel.writeAndFlush(new ClientSubscribeFrame(subscription.getId(), subscription.getSubject(), subscription.getQueueGroup()));
 			}
 		}
 	}
@@ -403,8 +401,7 @@ class NatsImpl implements Nats {
 				synchronized (lock) {
 					subscriptions.remove(id);
 					if (serverReady) {
-						channel.write(new ClientUnsubscribeFrame(id));
-						channel.flush();
+						channel.writeAndFlush(new ClientUnsubscribeFrame(id));
 					}
 				}
 			}
@@ -477,7 +474,7 @@ class NatsImpl implements Nats {
 					// TODO Parse info body for alternative servers to connect to as soon as NATS' clustering support starts sending this.
 					final ServerList.Server server = serverList.getCurrentServer();
 					final Channel channel = context.channel();
-					channel.write(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false))).addListener(new ChannelFutureListener() {
+					channel.writeAndFlush(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false))).addListener(new ChannelFutureListener() {
 						@Override
 						public void operationComplete(ChannelFuture future) throws Exception {
 							LOGGER.debug("Server ready");
@@ -487,7 +484,7 @@ class NatsImpl implements Nats {
 								for (NatsSubscription subscription : subscriptions.values()) {
 									writeSubscription(subscription);
 								}
-							// Resend pending publish commands.
+								// Resend pending publish commands.
 								final Channel channel = future.channel();
 								for (ClientPublishFrame publish : publishQueue) {
 									channel.write(publish);
@@ -497,7 +494,6 @@ class NatsImpl implements Nats {
 							fireStateChange(ConnectionStateListener.State.SERVERY_READY);
 						}
 					});
-					channel.flush();
 				}
 
 				@Override
