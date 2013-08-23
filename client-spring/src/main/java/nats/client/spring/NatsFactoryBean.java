@@ -63,7 +63,7 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, Appli
 			return nats;
 		}
 		LOGGER.debug("Creating NATS client");
-		final NatsConnector connector = new NatsConnector();
+		final NatsBuilder connector = new NatsBuilder(applicationEventPublisher);
 		if (hostUris == null) {
 			throw new IllegalStateException("At least one host URI must be provided.");
 		}
@@ -78,9 +78,6 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, Appli
 			connector.calllbackExecutor(callbackExecutor);
 		}
 
-		if (applicationEventPublisher != null) {
-			connector.addConnectionStateListener(new ApplicationEventPublishingConnectionStateListener(applicationEventPublisher));
-		}
 		if (eventLoopGroup != null) {
 			connector.eventLoopGroup(eventLoopGroup);
 		}
