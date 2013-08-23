@@ -79,22 +79,7 @@ public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, Appli
 		}
 
 		if (applicationEventPublisher != null) {
-			connector.addConnectionStateListener(new ConnectionStateListener() {
-				@Override
-				public void onConnectionStateChange(Nats nats, State state) {
-					switch (state) {
-						case CONNECTED:
-							applicationEventPublisher.publishEvent(new NatsConnectedApplicationEvent(nats));
-							break;
-						case DISCONNECTED:
-							applicationEventPublisher.publishEvent(new NatsClosedApplicationEvent(nats));
-							break;
-						case SERVERY_READY:
-							applicationEventPublisher.publishEvent(new NatsServerReadyApplicationEvent(nats));
-							break;
-					}
-				}
-			});
+			connector.addConnectionStateListener(new ApplicationEventPublishingConnectionStateListener(applicationEventPublisher));
 		}
 		if (eventLoopGroup != null) {
 			connector.eventLoopGroup(eventLoopGroup);
