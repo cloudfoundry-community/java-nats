@@ -42,7 +42,7 @@ public class NatsAnnotationsConfiguration implements ImportAware, ApplicationCon
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
-	public AnnotationConfigBeanPostProcessor someBean() {
+	public AnnotationConfigBeanPostProcessor natsAnnotationConfigBeanPostProcessor() {
 		final Nats nats;
 		if (natsRef.trim().length() > 0) {
 			nats = applicationContext.getBean(natsRef, Nats.class);
