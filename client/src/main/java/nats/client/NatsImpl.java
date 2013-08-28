@@ -167,7 +167,7 @@ class NatsImpl implements Nats {
 			@Override
 			public void operationComplete(ChannelFuture future) throws Exception {
 				if (future.isSuccess()) {
-					LOGGER.debug("Connection to {} successful", server.getAddress());
+					LOGGER.info("Connection to {} successful", server.getAddress());
 					server.connectionSuccess();
 					synchronized (lock) {
 						channel = future.channel();
