@@ -174,8 +174,19 @@ public interface Nats extends Closeable {
 	Subscription subscribe(String subject, String queueGroup, Integer maxMessages, MessageHandler... messageHandlers);
 
 	/**
-	 * Sends a request body on the given subject. Request responses can be handled using the returned
-	 * {@link Request}.
+	 * Sends a request on the given subject.
+	 *
+	 * @param subject         the subject to send the request on
+	 * @param timeout         the amount of time to wait for replies
+	 * @param unit            the unit of time to wait
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
+	 * @return a {@code Request} instance associated with the request.
+	 * @see #request(String, String, long, java.util.concurrent.TimeUnit, Integer, MessageHandler...)
+	 */
+	Request request(String subject, long timeout, TimeUnit unit, MessageHandler... messageHandlers);
+
+	/**
+	 * Sends a request body on the given subject.
 	 *
 	 * @param subject         the subject to send the request on
 	 * @param message         the content of the request
@@ -188,8 +199,7 @@ public interface Nats extends Closeable {
 	Request request(String subject, String message, long timeout, TimeUnit unit, MessageHandler... messageHandlers);
 
 	/**
-	 * Sends a request body on the given subject. Request responses can be handled using the returned
-	 * {@link Request}.
+	 * Sends a request body on the given subject and will except a specified number of replies.
 	 * <p/>
 	 * Invoking this method is roughly equivalent to the following:
 	 * <p/>

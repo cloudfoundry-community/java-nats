@@ -145,13 +145,18 @@ public class MockNats implements Nats {
 	}
 
 	@Override
+	public Request request(String subject, long timeout, TimeUnit unit, MessageHandler... messageHandlers) {
+		return request(subject, "", timeout, unit, messageHandlers);
+	}
+
+	@Override
 	public Request request(String subject, String message, long timeout, TimeUnit unit, MessageHandler... messageHandlers) {
-		return null;
+		return request(subject, message, timeout, unit, null, messageHandlers);
 	}
 
 	@Override
 	public Request request(String subject, String message, long timeout, TimeUnit unit, Integer maxReplies, MessageHandler... messageHandlers) {
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 }

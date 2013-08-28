@@ -327,6 +327,11 @@ class NatsImpl implements Nats {
 	}
 
 	@Override
+	public Request request(String subject, long timeout, TimeUnit unit, MessageHandler... messageHandlers) {
+		return request(subject, "", timeout, unit, messageHandlers);
+	}
+
+	@Override
 	public Request request(String subject, String message, long timeout, TimeUnit unit, MessageHandler... messageHandlers) {
 		return request(subject, message, timeout, unit, null, messageHandlers);
 	}
