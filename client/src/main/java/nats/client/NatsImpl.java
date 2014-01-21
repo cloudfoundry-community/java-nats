@@ -464,7 +464,8 @@ class NatsImpl implements Nats {
 						subscription = subscriptions.get(frame.getId());
 					}
 					if (subscription == null) {
-						throw new NatsException("Received a body for an unknown subscription.");
+						LOGGER.debug("Received a message with the subject '{}' with no subscribers.", frame.getSubject());
+						return;
 					}
 					subscription.onMessage(frame.getSubject(), frame.getBody(), frame.getReplyTo(), executor);
 				}
