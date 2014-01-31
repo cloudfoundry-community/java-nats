@@ -23,11 +23,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Provide a mock instance of {@link Nats} to use primarily for testing purposes. This mock Nats does not yet support
@@ -134,7 +136,22 @@ public class MockNats implements Nats {
 
 	@Override
 	public Subscription subscribe(String subject, String queueGroup, Integer maxMessages, MessageHandler... messageHandlers) {
-		final DefaultSubscription subscription = new DefaultSubscription(subject, queueGroup, maxMessages, messageHandlers);
+		final DefaultSubscription subscription = new DefaultSubscription(subject, queueGroup, maxMessages, messageHandlers) {
+			@Override
+			protected Message createMessage(String subject, String body, String queueGroup, final String replyTo) {
+				return new DefaultMessage(subject, body, queueGroup, replyTo != null && replyTo.trim().length() > 0) {
+					@Override
+					public void reply(String body) throws UnsupportedOperationException {
+						publish(replyTo, body);
+					}
+
+					@Override
+					public void reply(String body, long delay, TimeUnit timeUnit) throws UnsupportedOperationException {
+						publish(replyTo, body, delay, timeUnit);
+					}
+				};
+			}
+		};
 		Collection<DefaultSubscription> mockSubscriptions = subscriptions.get(subject);
 		if (mockSubscriptions == null) {
 			mockSubscriptions = new ArrayList<>();
@@ -155,8 +172,45 @@ public class MockNats implements Nats {
 	}
 
 	@Override
-	public Request request(String subject, String message, long timeout, TimeUnit unit, Integer maxReplies, MessageHandler... messageHandlers) {
-		throw new UnsupportedOperationException();
+	public Request request(final String subject, String message, long timeout, TimeUnit unit, final Integer maxReplies, MessageHandler... messageHandlers) {
+		final String replySubject = UUID.randomUUID().toString();
+
+		final Subscription subscription = subscribe(replySubject, maxReplies, messageHandlers);
+
+		final AtomicInteger messageCounter = new AtomicInteger();
+		subscription.addMessageHandler(new MessageHandler() {
+			@Override
+			public void onMessage(Message message) {
+				final int count = messageCounter.incrementAndGet();
+				if (maxReplies != null && count > maxReplies) {
+					subscription.close();
+				}
+			}
+		});
+
+		publish(subject, message, replySubject);
+
+		return new Request() {
+			@Override
+			public void close() {
+				subscription.close();
+			}
+
+			@Override
+			public String getSubject() {
+				return subject;
+			}
+
+			@Override
+			public int getReceivedReplies() {
+				return messageCounter.get();
+			}
+
+			@Override
+			public Integer getMaxReplies() {
+				return maxReplies;
+			}
+		};
 	}
 
 }

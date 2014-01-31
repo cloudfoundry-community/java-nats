@@ -64,5 +64,28 @@ public class MockNatsTest {
 		Assert.assertTrue(latch.await(1, TimeUnit.SECONDS));
 	}
 
+	@Test
+	public void request() throws Exception {
+		final Nats nats = new MockNats();
+		final String subject = "test";
+		final String response = "This is a response.";
+		nats.subscribe(subject, new MessageHandler() {
+			@Override
+			public void onMessage(Message message) {
+				message.reply(response);
+			}
+		});
+
+		final boolean[] flag = new boolean[] { false };
+		nats.request(subject, 1, TimeUnit.SECONDS, new MessageHandler() {
+			@Override
+			public void onMessage(Message message) {
+				Assert.assertEquals(message.getBody(), response);
+				flag[0] = true;
+			}
+		});
+
+		Assert.assertTrue(flag[0], "Request response handler was not invoked.");
+	}
 
 }
