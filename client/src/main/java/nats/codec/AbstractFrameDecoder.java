@@ -56,7 +56,7 @@ abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecode
 		} else {
 			// Trigger a read exception on the incoming byte buffer to keep the ReplayingDecoder happy. Instead of
 			// searching for CRLF, we should read all the bytes into a buffer so that the reading triggers this exception.
-			in.readBytes(in.readableBytes() + 1);
+			in.readBytes(Integer.MAX_VALUE);
 		}
 	}
 
