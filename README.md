@@ -11,6 +11,7 @@ This project provides a [simple Java client for NATS](https://github.com/cloudfo
 an optional [Spring integration](https://github.com/cloudfoundry-community/java-nats/tree/master/client-spring) for using the client.
 
 To use the basic client in your project, add the following to your Maven pom.xml:
+
 ```xml
 <dependency>
     <groupId>com.github.cloudfoundry-community</groupId>
