@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns="http://mheath.github.com/jnats/schema/spring/nats"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://mheath.github.com/jnats/schema/spring/nats"
+            elementFormDefault="qualified" attributeFormDefault="unqualified">
+
+	<xsd:element name="nats">
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="url" type="xsd:string" minOccurs="1" maxOccurs="unbounded" />
+				<xsd:sequence>
+					<xsd:element name="subscription" minOccurs="0" maxOccurs="unbounded">
+						<xsd:complexType>
+							<xsd:complexContent>
+								<xsd:extension base="subscription">
+									<xsd:attribute name="subject" type="xsd:string" use="required" />
+								</xsd:extension>
+							</xsd:complexContent>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:sequence>
+			<xsd:attribute name="id" type="xsd:string" default="nats" />
+			<xsd:attribute name="auto-reconnect" type="xsd:string" default="true" />
+			<xsd:attribute name="channel-factory-ref" type="xsd:string" use="optional" />
+			<xsd:attribute name="exception-handler-ref" type="xsd:string" use="optional" />
+			<xsd:attribute name="logger-ref" type="xsd:string" use="optional" />
+			<xsd:attribute name="max-reconnect-attempts" type="xsd:string" default="10" />
+			<xsd:attribute name="reconnect-wait-time" type="xsd:string" default="2000" />
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:element name="annotation-config">
+		<xsd:complexType>
+			<xsd:attribute name="nats-ref" default="nats" />
+		</xsd:complexType>
+	</xsd:element>
+
+	<xsd:complexType name="subscription">
+		<xsd:attribute name="ref" type="xsd:string" use="required" />
+		<xsd:attribute name="method" type="xsd:string" use="required" />
+		<xsd:attribute name="queue-group" type="xsd:string" use="optional" />
+	</xsd:complexType>
+
+</xsd:schema>
