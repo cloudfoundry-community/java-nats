@@ -13,7 +13,7 @@ the following example:
         xmlns:nats="http://cloudfoundry-community.github.io/java-nats/schema/spring/nats"
         xsi:schemaLocation="
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
-        http://cloudfoundry-community.github.io/java-nats/schema/spring/nats http://cloudfoundry-community.github.io/java-nats/schema/spring/nats-0.5.xsd
+        http://cloudfoundry-community.github.io/java-nats/schema/spring/nats http://cloudfoundry-community.github.io/java-nats/schema/spring/nats/nats-0.5.xsd
         "
         >
 ...
