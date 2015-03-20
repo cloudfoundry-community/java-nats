@@ -69,6 +69,7 @@ public class MockNats implements Nats {
 	@Override
 	public void close() {
 		connected = false;
+		scheduledExecutorService.shutdown();
 	}
 
 	@Override
