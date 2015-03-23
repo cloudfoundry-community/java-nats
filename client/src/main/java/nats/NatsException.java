@@ -27,6 +27,10 @@ public class NatsException extends RuntimeException {
 		super(message);
 	}
 
+	public NatsException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
 	public NatsException(Throwable cause) {
 		super(cause);
 	}
