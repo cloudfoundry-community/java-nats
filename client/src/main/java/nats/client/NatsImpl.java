@@ -497,7 +497,7 @@ class NatsImpl implements Nats {
 								}
 								channel.flush();
 							}
-							fireStateChange(ConnectionStateListener.State.SERVERY_READY);
+							fireStateChange(ConnectionStateListener.State.SERVER_READY);
 						}
 					});
 				}

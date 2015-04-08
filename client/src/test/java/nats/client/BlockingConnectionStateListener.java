@@ -33,7 +33,7 @@ public class BlockingConnectionStateListener implements ConnectionStateListener 
 			case DISCONNECTED:
 				disconnectLatch.countDown();
 				break;
-			case SERVERY_READY:
+			case SERVER_READY:
 				readyLatch.countDown();
 				break;
 		}

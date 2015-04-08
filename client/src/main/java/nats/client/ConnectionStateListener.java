@@ -31,7 +31,7 @@ public interface ConnectionStateListener {
 		/**
 		 * Authentication, if necessary, has been completed.
 		 */
-		SERVERY_READY,
+		SERVER_READY,
 		/**
 		 * The connection was closed.
 		 */

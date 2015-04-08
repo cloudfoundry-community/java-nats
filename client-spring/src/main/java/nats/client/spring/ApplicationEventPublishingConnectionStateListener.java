@@ -42,7 +42,7 @@ public class ApplicationEventPublishingConnectionStateListener implements Connec
 			case DISCONNECTED:
 				applicationEventPublisher.publishEvent(new NatsClosedApplicationEvent(nats));
 				break;
-			case SERVERY_READY:
+			case SERVER_READY:
 				applicationEventPublisher.publishEvent(new NatsServerReadyApplicationEvent(nats));
 				break;
 		}
