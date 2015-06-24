@@ -28,6 +28,10 @@ public final class Constants {
 	 */
 	public static final String DEFAULT_HOST = "localhost";
 	/**
+	 * The default time between Nats ping requests.
+	 */
+	public static final long DEFAULT_PING_INTERVAL = TimeUnit.SECONDS.toMillis(15);
+	/**
 	 * The default Nats port, 4222.
 	 */
 	public static final int DEFAULT_PORT = 4222;

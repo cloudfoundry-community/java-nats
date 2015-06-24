@@ -38,6 +38,7 @@ public class NatsConnector {
 	EventLoopGroup eventLoopGroup;
 	int maxFrameSize = Constants.DEFAULT_MAX_FRAME_SIZE;
 	final List<ConnectionStateListener> listeners = new ArrayList<>();
+	long pingInterval = Constants.DEFAULT_PING_INTERVAL;
 
 	/**
 	 * Executor to use for invoking callbacks. By default the current thread, usually a Netty IO thread, is used to
@@ -100,6 +101,17 @@ public class NatsConnector {
 	 */
 	public NatsConnector eventLoopGroup(EventLoopGroup eventLoopGroup) {
 		this.eventLoopGroup = eventLoopGroup;
+		return this;
+	}
+
+	/**
+	 * Specifies the time between sending ping requests to the Nats server.
+	 *
+	 * @param pingInterval the time between ping packets in milliseconds.
+	 * @return this connector.
+	 */
+	public NatsConnector pingInterval(long pingInterval) {
+		this.pingInterval = pingInterval;
 		return this;
 	}
 
