@@ -39,6 +39,7 @@ public class NatsConnector {
 	int maxFrameSize = Constants.DEFAULT_MAX_FRAME_SIZE;
 	final List<ConnectionStateListener> listeners = new ArrayList<>();
 	long pingInterval = Constants.DEFAULT_PING_INTERVAL;
+	int pingMaxTimes = Constants.DEFAULT_PING_MAXTIMES;
 
 	/**
 	 * Executor to use for invoking callbacks. By default the current thread, usually a Netty IO thread, is used to
@@ -112,6 +113,18 @@ public class NatsConnector {
 	 */
 	public NatsConnector pingInterval(long pingInterval) {
 		this.pingInterval = pingInterval;
+		return this;
+	}
+	
+	/**
+	 * Specifies the ping request number which have not been responded by Nats server
+	 * before marking the connection stable.
+	 *
+	 * @param pingmaxTimes the ping request number which have not been responded by Nats server 
+	 * @return this connector.
+	 */
+	public NatsConnector pingMaxTimes(int pingmaxTimes) {
+		this.pingMaxTimes = pingmaxTimes;
 		return this;
 	}
 
