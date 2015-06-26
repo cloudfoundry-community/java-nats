@@ -32,6 +32,10 @@ public final class Constants {
 	 */
 	public static final long DEFAULT_PING_INTERVAL = TimeUnit.SECONDS.toMillis(15);
 	/**
+	 * The default max ping times before marking the connection stale
+	 */
+	public static final int DEFAULT_PING_MAXTIMES = 2;
+	/**
 	 * The default Nats port, 4222.
 	 */
 	public static final int DEFAULT_PORT = 4222;

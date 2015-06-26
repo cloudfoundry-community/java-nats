@@ -91,6 +91,7 @@ class NatsImpl implements Nats {
 	private final boolean pedantic;
 	private final int maxFrameSize;
 	private final long pingInterval;
+	private final int pingMaxTimes;
 
 	private final ServerList serverList = new ServerList();
 
@@ -144,6 +145,7 @@ class NatsImpl implements Nats {
 		pedantic = connector.pedantic;
 		maxFrameSize = connector.maxFrameSize;
 		pingInterval = connector.pingInterval;
+		pingMaxTimes = connector.pingMaxTimes;
 
 		listeners.addAll(connector.listeners);
 
@@ -461,12 +463,11 @@ class NatsImpl implements Nats {
 			pipeline.addLast("encoder", new ClientFrameEncoder());
 			pipeline.addLast("handler", new AbstractClientInboundMessageHandlerAdapter() {
 
-				private ScheduledFuture<?> idleCheckScheduledFuture;
 				private ScheduledFuture<?> pingScheduledFuture;
+				private AtomicInteger serverPingNoAck = new AtomicInteger(0);
 
 				@Override
 				protected void publishedMessage(ChannelHandlerContext context, ServerPublishFrame frame) {
-					resetIdleCheck(context.channel());
 					final NatsSubscription subscription;
 					synchronized (lock) {
 						subscription = subscriptions.get(frame.getId());
@@ -480,7 +481,7 @@ class NatsImpl implements Nats {
 
 				@Override
 				protected void pongResponse(ChannelHandlerContext context, ServerPongFrame pongFrame) {
-					resetIdleCheck(context.channel());
+					serverPingNoAck.decrementAndGet();
 				}
 
 				@Override
@@ -494,6 +495,7 @@ class NatsImpl implements Nats {
 							LOGGER.debug("Server ready");
 							synchronized (lock) {
 								serverReady = true;
+								serverPingNoAck.set(0);
 								// Resubscribe when the channel opens.
 								for (NatsSubscription subscription : subscriptions.values()) {
 									writeSubscription(subscription);
@@ -508,7 +510,14 @@ class NatsImpl implements Nats {
 							pingScheduledFuture = channel.eventLoop().scheduleAtFixedRate(new Runnable() {
 								@Override
 								public void run() {
-									channel.writeAndFlush(ClientPingFrame.PING);
+									  // mark the channel inactive
+								      if (serverPingNoAck.get() > pingMaxTimes && !closed) {
+								    	  LOGGER.warn("has not reveived pong from nats server, close the connection");
+									      channel.close();
+								      } else {
+									      channel.writeAndFlush(ClientPingFrame.PING);
+									      serverPingNoAck.incrementAndGet();
+								      }
 								}
 							}, pingInterval, pingInterval, TimeUnit.MILLISECONDS);
 							fireStateChange(ConnectionStateListener.State.SERVER_READY);
@@ -529,7 +538,6 @@ class NatsImpl implements Nats {
 				@Override
 				public void channelActive(final ChannelHandlerContext context) throws Exception {
 					fireStateChange(ConnectionStateListener.State.CONNECTED);
-					resetIdleCheck(context.channel());
 				}
 
 				@Override
@@ -548,20 +556,6 @@ class NatsImpl implements Nats {
 				public void exceptionCaught(ChannelHandlerContext context, Throwable cause) throws Exception {
 					LOGGER.error("Error", cause);
 				}
-
-				private void resetIdleCheck(final Channel channel) {
-					if (idleCheckScheduledFuture != null) {
-						idleCheckScheduledFuture.cancel(true);
-					}
-					idleCheckScheduledFuture = channel.eventLoop().schedule(new Runnable() {
-						@Override
-						public void run() {
-							LOGGER.warn("Connection to NATS server has gone idle");
-							channel.close();
-						}
-					}, pingInterval * 2, TimeUnit.MILLISECONDS);
-				}
-
 			});
 		}
 	}
