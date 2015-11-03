@@ -87,6 +87,7 @@ class NatsImpl implements Nats {
 
 	// Configuration values
 	private final boolean automaticReconnect;
+	private final long idleTimeout;
 	private final long reconnectTimeWait;
 	private final boolean pedantic;
 	private final int maxFrameSize;
@@ -140,6 +141,7 @@ class NatsImpl implements Nats {
 
 		// Set parameters
 		automaticReconnect = connector.automaticReconnect;
+		idleTimeout = connector.idleTimeout;
 		reconnectTimeWait = connector.reconnectWaitTime;
 		pedantic = connector.pedantic;
 		maxFrameSize = connector.maxFrameSize;
@@ -559,7 +561,7 @@ class NatsImpl implements Nats {
 							LOGGER.warn("Connection to NATS server has gone idle");
 							channel.close();
 						}
-					}, pingInterval * 2, TimeUnit.MILLISECONDS);
+					}, idleTimeout, TimeUnit.MILLISECONDS);
 				}
 
 			});
