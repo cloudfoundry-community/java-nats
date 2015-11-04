@@ -23,7 +23,7 @@ import org.springframework.context.ApplicationEventPublisher;
 /**
  * Publishes NATS connection state change events as Spring events from NatsFactoryBean.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ApplicationEventPublishingConnectionStateListener implements ConnectionStateListener  {
 

@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Provides an {@link Iterator} for fetching Nats subscription messages in a blocking manner.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public interface MessageIterator extends Iterator<Message>, AutoCloseable {
 
@@ -30,7 +30,7 @@ public interface MessageIterator extends Iterator<Message>, AutoCloseable {
 	 * Returns {@code true} if this iterator is open. We do not know if/when the Nats server will publish another
 	 * message so we assume another message is pending so, this method always returns true unless this iterator has
 	 * been closed.
-	 * <p/>
+	 *
 	 * <p>Closing the subscription associated with this iterator will close this iterator.
 	 *
 	 * @return {@code true} unless this iterator has been closed.
@@ -67,7 +67,7 @@ public interface MessageIterator extends Iterator<Message>, AutoCloseable {
 
 	/**
 	 * Closes this subscription iterator.
-	 * <p/>
+	 *
 	 * <p>Closing the subscription associated with this iterator will close this iterator.
 	 */
 	@Override

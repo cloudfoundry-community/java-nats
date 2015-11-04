@@ -19,7 +19,7 @@ package nats.client;
 import nats.NatsException;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ServerConnectionFailedException extends NatsException {
 	public ServerConnectionFailedException(String message) {

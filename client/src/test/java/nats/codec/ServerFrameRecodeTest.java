@@ -23,7 +23,7 @@ import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ServerFrameRecodeTest {
 

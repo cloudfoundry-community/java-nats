@@ -22,7 +22,7 @@ import org.springframework.context.ApplicationEvent;
 /**
  * Abstract application event class for NATS events.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public abstract class AbstractNatsApplicationEvent extends ApplicationEvent {
 	private final Nats nats;

@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * A NATS message.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 // TODO Fix reply to behave the same way as CEB.
 public interface Message {

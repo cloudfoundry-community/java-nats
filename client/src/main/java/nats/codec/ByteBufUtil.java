@@ -19,7 +19,7 @@ package nats.codec;
 import io.netty.buffer.ByteBuf;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 class ByteBufUtil {
 

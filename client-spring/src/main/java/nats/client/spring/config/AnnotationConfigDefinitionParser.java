@@ -24,7 +24,7 @@ import org.springframework.beans.factory.xml.ParserContext;
 import org.w3c.dom.Element;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 class AnnotationConfigDefinitionParser implements BeanDefinitionParser {
 	private static final String ATTRIBUTE_NATS_REF = "nats-ref";

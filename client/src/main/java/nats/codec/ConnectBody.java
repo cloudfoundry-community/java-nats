@@ -25,7 +25,7 @@ import nats.NatsException;
 import java.io.IOException;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ConnectBody {
 

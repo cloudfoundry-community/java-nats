@@ -19,7 +19,7 @@ package nats.client.spring.config;
 import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsNamespaceHandler extends NamespaceHandlerSupport {
 	@Override

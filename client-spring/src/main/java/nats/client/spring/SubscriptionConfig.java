@@ -17,7 +17,7 @@
 package nats.client.spring;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class SubscriptionConfig {
 

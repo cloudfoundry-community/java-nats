@@ -19,7 +19,7 @@ package nats.client;
 /**
  * Represents a NATS subscription.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public interface Subscription extends AutoCloseable, Iterable<Message> {
 
@@ -63,13 +63,13 @@ public interface Subscription extends AutoCloseable, Iterable<Message> {
 	 * Creates a {@link MessageIterator} that can be used for fetching messages from this subscription in a
 	 * blocking manner. Because {@code Subscription} implements the {@link Iterable} interface, a subscription can be
 	 * used in a Java for loop. For example:
-	 * <p/>
-	 * <pre>
+	 *
+	 * {@code
 	 *     for (Message message : nats.subscribe("foo.>") {
 	 *         System.out.println(message);
 	 *     }
-	 * </pre>
-	 * <p/>
+	 * }
+	 *
 	 * The for loop may terminate with an exception when the subscription is closed.
 	 *
 	 * @return a {@link MessageIterator}

@@ -29,7 +29,7 @@ import java.util.List;
 /**
  * Keeps a list of available servers in the NATS cluster.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 class ServerList {
 

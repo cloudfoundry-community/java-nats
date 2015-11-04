@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * A {@link MessageIterator} that is backed by a {@link LinkedBlockingQueue}.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class BlockingQueueMessageIterator implements MessageIterator, MessageHandler {
 

@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Provides a default implementation of the {@link Message} interface.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class DefaultMessage implements Message {
 

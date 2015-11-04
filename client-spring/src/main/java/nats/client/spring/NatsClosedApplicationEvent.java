@@ -23,7 +23,7 @@ import nats.client.Nats;
  * whether {@link nats.client.Nats#close()} is called or if the connection goes down because of a server or network
  * failure.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsClosedApplicationEvent extends AbstractNatsApplicationEvent {
 

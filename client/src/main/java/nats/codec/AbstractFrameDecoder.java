@@ -26,7 +26,7 @@ import nats.Constants;
 import java.util.List;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecoder<Object> {
 

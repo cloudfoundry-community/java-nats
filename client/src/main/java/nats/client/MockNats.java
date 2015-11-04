@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Provide a mock instance of {@link Nats} to use primarily for testing purposes. This mock Nats does not yet support
  * subscribing to subjects with wild cards.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class MockNats implements Nats {
 

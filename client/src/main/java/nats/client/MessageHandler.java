@@ -20,7 +20,7 @@ package nats.client;
  * Provides a callback method that gets invoked when a message is received. This callback is used with subscriptions
  * and requests.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public interface MessageHandler {
 

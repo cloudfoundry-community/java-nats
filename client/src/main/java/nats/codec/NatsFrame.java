@@ -19,7 +19,7 @@ package nats.codec;
 /**
  * Classes of this type are NATS frames to be encoded or decoded between a client and server.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public interface NatsFrame {
 }

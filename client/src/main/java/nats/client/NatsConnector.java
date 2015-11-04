@@ -28,7 +28,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsConnector {
 	List<URI> hosts = new ArrayList<>();
@@ -119,6 +119,10 @@ public class NatsConnector {
 	/**
 	 *  Specifies the time duration the connection to the NATS server may be idle before the client closes the
 	 *  connection.
+	 *
+	 *  @param idleTimeout time duration the connection to the NATS server may be idle before the client closes the
+	 *  connection
+	 * @return this connector.
 	 */
 	public NatsConnector idleTimeout(long idleTimeout) {
 		this.idleTimeout = idleTimeout;

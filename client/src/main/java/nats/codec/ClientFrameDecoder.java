@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.util.regex.Pattern;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ClientFrameDecoder extends AbstractFrameDecoder<ClientFrame> {
 

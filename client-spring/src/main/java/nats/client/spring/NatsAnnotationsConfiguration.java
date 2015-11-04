@@ -32,7 +32,7 @@ import java.util.Map;
 /**
  * Java config for providing {@link Subscribe @Subscribe} support.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 @Configuration
 public class NatsAnnotationsConfiguration implements ImportAware, ApplicationContextAware {

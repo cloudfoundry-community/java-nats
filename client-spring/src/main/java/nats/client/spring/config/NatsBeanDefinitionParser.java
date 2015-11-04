@@ -31,7 +31,7 @@ import org.w3c.dom.Element;
 import java.util.List;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 class NatsBeanDefinitionParser implements BeanDefinitionParser {
 

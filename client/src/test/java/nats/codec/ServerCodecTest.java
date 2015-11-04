@@ -24,7 +24,7 @@ import io.netty.handler.codec.DecoderException;
 import org.testng.annotations.Test;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ServerCodecTest {
 

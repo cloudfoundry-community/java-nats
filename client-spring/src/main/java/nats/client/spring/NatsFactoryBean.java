@@ -38,7 +38,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsFactoryBean implements FactoryBean<Nats>, DisposableBean, ApplicationEventPublisherAware {
 

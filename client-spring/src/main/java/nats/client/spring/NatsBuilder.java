@@ -22,7 +22,7 @@ import org.springframework.context.ApplicationEventPublisher;
 /**
  * Convenience class for creating a {@link nats.client.Nats} instances that will publish Spring application events
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsBuilder extends NatsConnector {
 

@@ -19,7 +19,7 @@ package nats.codec;
 import nats.NatsException;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsDecodingException extends NatsException {
 

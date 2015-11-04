@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.Charset;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ClientFrameEncoder extends MessageToByteEncoder<ClientFrame> {
 

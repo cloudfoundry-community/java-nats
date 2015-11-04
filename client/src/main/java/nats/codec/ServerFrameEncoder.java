@@ -28,7 +28,7 @@ import java.nio.charset.Charset;
 /**
  * Encodes {@link ServerFrame} objects to binary to be sent over the network.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ServerFrameEncoder extends MessageToByteEncoder<ServerFrame> {
 

@@ -17,7 +17,7 @@
 package nats.codec;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ClientPongFrame implements ClientFrame {
 	public static final ClientPongFrame PONG = new ClientPongFrame();

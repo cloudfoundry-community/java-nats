@@ -19,7 +19,7 @@ package nats.client.spring;
 import nats.client.Message;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class SubscribeBean {
 

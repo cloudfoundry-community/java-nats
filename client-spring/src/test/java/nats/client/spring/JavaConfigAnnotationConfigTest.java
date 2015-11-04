@@ -30,7 +30,7 @@ import java.util.List;
 import static org.testng.Assert.*;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class JavaConfigAnnotationConfigTest {
 

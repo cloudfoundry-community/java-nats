@@ -22,7 +22,7 @@ import org.springframework.context.ApplicationEvent;
 /**
  * This event gets published when a connection is opened to a NATS server.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsConnectedApplicationEvent extends AbstractNatsApplicationEvent {
 

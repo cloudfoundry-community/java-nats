@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 /**
  * Decodes frames sent from the server.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
 

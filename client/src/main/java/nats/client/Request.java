@@ -28,7 +28,7 @@ package nats.client;
  * {@link MessageHandler}s after the subscription has been created. Similar to the previous problem, if a reply is
  * received before the {@code MessageHandler} has been added to the request, receipt of the message will be lost.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public interface Request extends AutoCloseable {
 

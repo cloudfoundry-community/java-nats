@@ -23,7 +23,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import org.testng.annotations.Test;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class ClientCodecTest {
 

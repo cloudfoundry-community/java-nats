@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class PerfTest {
 	public static void main(String[] args) throws Exception {

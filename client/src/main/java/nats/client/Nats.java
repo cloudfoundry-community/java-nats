@@ -23,10 +23,10 @@ import java.util.concurrent.TimeUnit;
  * Provides the interface for publishing messages and subscribing to NATS subjects. This class is responsible for
  * maintaining a connection to the NATS server as well as automatic fail-over to a second server if the
  * connection to one server fails.
- * <p/>
+ *
  * <p>This class is fully thread-safe.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public interface Nats extends Closeable {
 
@@ -90,6 +90,7 @@ public interface Nats extends Closeable {
 	 * @param subject the subject to which the message will be published
 	 * @param period the period between successive publishes
 	 * @param unit the time unit of the period parameter
+	 * @return a {@code Registration} object that can be used to cancel repeatedly publishing the message.
 	 */
 	Registration publish(String subject, long period, TimeUnit unit);
 
@@ -102,19 +103,21 @@ public interface Nats extends Closeable {
 	 * @param body    the message body to publish
 	 * @param period the period between successive publishes
 	 * @param unit the time unit of the period parameter
+	 * @return a {@code Registration} object that can be used to cancel recurring publishing.
 	 */
 	Registration publish(String subject, String body, long period, TimeUnit unit);
 
 	/**
-	 * Publishes a message with the provided body to the specified subject. Any replies to this message will be sent to
-	 * the specified reply to subject. If this {@code Nats} instance is not currently connected to a NATS server, the
-	 * message will not be sent or queued up.
+	 * Publishes a message with the provided body to the specified subject on a recurring basis according to the
+	 * specified period. Any replies to this message will be sent to the specified reply to subject. If this
+	 * {@code Nats} instance is not currently connected to a NATS server, the message will not be sent or queued up.
 	 *
 	 * @param subject the subject to which the message will be published
 	 * @param body    the message body to publish
 	 * @param replyTo the subject replies to this body should be sent to.
 	 * @param period the period between successive publishes
 	 * @param unit the time unit of the period parameter
+	 * @return a {@code Registration} object that can be used to cancel recurring publishing.
 	 */
 	Registration publish(String subject, String body, String replyTo, long period, TimeUnit unit);
 
@@ -122,6 +125,7 @@ public interface Nats extends Closeable {
 	 * Subscribes to the specified subject.
 	 *
 	 * @param subject the subject to subscribe to
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
@@ -133,6 +137,7 @@ public interface Nats extends Closeable {
 	 *
 	 * @param subject    the subject to subscribe to
 	 * @param queueGroup the queue group the subscription participates in
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
@@ -143,7 +148,8 @@ public interface Nats extends Closeable {
 	 * arrives.
 	 *
 	 * @param subject         the subject to subscribe to
-	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
+	 * @param maxMessages     the maximum number of messages received by the subscription
+	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 * @see #subscribe(String, String, Integer,MessageHandler...)
 	 */
@@ -152,22 +158,24 @@ public interface Nats extends Closeable {
 	/**
 	 * Subscribes to the specified subject within a specific queue group and will automatically unsubscribe after the
 	 * specified number of messages arrives.
-	 * <p/>
+	 *
 	 * <p>The {@code subject} may contain wild cards. "*" matches any token, at any level of the subject. For example:
 	 * <pre>
 	 *     "foo.*.baz"  matches "foo.bar.baz, foo.a.baz, etc.
 	 *     "*.bar" matches "foo.bar", "baz.bar", etc.
 	 *     "*.bar.*" matches "foo.bar.baz", "foo.bar.foo", etc.
 	 * </pre>
-	 * <p/>
-	 * <p>">" matches any length of the tail of a subject and can only be the last token. For examples, 'foo.>' will
-	 * match 'foo.bar', 'foo.bar.baz', 'foo.foo.bar.bax.22'. A subject of simply ">" will match all messages.
-	 * <p/>
+	 *
+	 * <p>"{@code >}" matches any length of the tail of a subject and can only be the last token. For examples,
+	 * '{@code foo.>}' will match '{@code foo.bar}', '{@code foo.bar.baz}', '{@code foo.foo.bar.bax.22}'. A subject of
+	 * simply "{@code >}" will match all messages.
+	 *
 	 * <p>All subscriptions with the same {@code queueGroup} will form a queue group. Each body will be delivered to
 	 * only one subscriber per queue group.
 	 *
 	 * @param subject         the subject to subscribe to
 	 * @param queueGroup      the queue group the subscription participates in
+	 * @param maxMessages     the maximum number of messages received by the subscription
 	 * @param messageHandlers the {@code MessageHandler}s to listen for incoming messages.
 	 * @return a {@code Subscription} object used for interacting with the subscription
 	 */
@@ -200,15 +208,14 @@ public interface Nats extends Closeable {
 
 	/**
 	 * Sends a request body on the given subject and will except a specified number of replies.
-	 * <p/>
-	 * Invoking this method is roughly equivalent to the following:
-	 * <p/>
-	 * <code>
+	 * <p>Invoking this method is roughly equivalent to the following:
+	 *
+	 * {@code
 	 * String replyTo = Nats.createInbox();
 	 * Subscription subscription = nats.subscribe(replyTo, maxReplies);
 	 * Publication publication = nats.publish(subject, body, replyTo);
-	 * </code>
-	 * <p/>
+	 * }
+	 *
 	 * that returns a combination of {@code Subscription} and {@code Publication} as a {@code Request} object.
 	 *
 	 * @param subject         the subject to send the request on

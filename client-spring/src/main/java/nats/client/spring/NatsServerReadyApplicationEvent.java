@@ -21,7 +21,7 @@ import nats.client.Nats;
 /**
  * This event gets published when the client connects to a NATS server and has successfully authenticated.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsServerReadyApplicationEvent extends AbstractNatsApplicationEvent {
 	public NatsServerReadyApplicationEvent(Nats nats) {

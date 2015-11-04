@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
 /**
  * Provides Java config support for using the {@link Subscribe @Subscribe} annotation.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
@@ -36,7 +36,7 @@ import java.lang.annotation.Target;
 public @interface EnableNatsAnnotations {
 
 	/**
-	 * The name of the {@code Nats} bean to use. Using an empty value will lookup the {@code Nats} instance by type.
+	 * @return name of the {@code Nats} bean to use. Using an empty value will lookup the {@code Nats} instance by type.
 	 */
 	String value() default "";
 

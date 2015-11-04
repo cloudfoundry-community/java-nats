@@ -21,7 +21,7 @@ import nats.NatsException;
 /**
  * Thrown when trying to use a {@link Nats} client that has been closed.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsClosedException extends NatsException {
 	public NatsClosedException() {

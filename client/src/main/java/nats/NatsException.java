@@ -19,7 +19,7 @@ package nats;
 /**
  * The root exception for all Nats exceptions.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public class NatsException extends RuntimeException {
 

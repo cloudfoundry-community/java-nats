@@ -26,7 +26,7 @@ package nats.client;
  * removed from the {@code Subscription} and will no longer be called when new messages arrive on the
  * {@code Subscription}.
  *
- * @author Mike Heath <elcapo@gmail.com>
+ * @author Mike Heath
  */
 public interface Registration {
 
