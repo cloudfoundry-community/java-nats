@@ -101,7 +101,7 @@
 	<scm>
 		<url>scm:git:https://github.com/cloudfoundry-community/java-nats.git</url>
 		<connection>scm:git:https://github.com/cloudfoundry-community/java-nats</connection>
-		<developerConnection>scm:git@github.com:cloudfoundry-community/java-nats.git</developerConnection>
+		<developerConnection>scm:git:git@github.com:cloudfoundry-community/java-nats.git</developerConnection>
 	</scm>
 
 	<developers>
