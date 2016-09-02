@@ -18,6 +18,8 @@ package nats.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.util.CharsetUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,9 +64,8 @@ public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
 			if (length > getMaxMessageSize()) {
 				throwTooLongFrameException(context);
 			}
-			final byte[] bodyBytes = new byte[length];
-			in.readBytes(bodyBytes, 0, length);
-			final String body = new String(bodyBytes);
+			final String body = in.toString(in.readerIndex(), length, CharsetUtil.UTF_8);
+			in.skipBytes(length);
 			in.skipBytes(ByteBufUtil.CRLF.length);
 			return new ServerPublishFrame(id, subject, replyTo, body);
 		}
