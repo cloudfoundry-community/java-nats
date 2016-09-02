@@ -3,4 +3,4 @@ jdk:
   - oraclejdk7
   - openjdk7
 before_install:
-- gem install nats
+- gem install nats -v 0.5.1
