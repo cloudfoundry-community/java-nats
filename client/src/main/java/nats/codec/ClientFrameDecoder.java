@@ -69,9 +69,10 @@ public class ClientFrameDecoder extends AbstractFrameDecoder<ClientFrame> {
 				final String subject = parts[0];
 				final int length = Integer.parseInt(parts[parts.length - 1]);
 				final String replyTo = (parts.length == 3) ? parts[1] : null;
-				final ByteBuf bodyBytes = in.readBytes(length);
+				final byte[] bodyBytes = new byte[length];
+				in.readBytes(bodyBytes, 0, length);
 				in.skipBytes(ByteBufUtil.CRLF.length);
-				final String body = new String(bodyBytes.array());
+				final String body = new String(bodyBytes);
 				return new ClientPublishFrame(subject, body, replyTo);
 			} catch (NumberFormatException e) {
 				throw new NatsDecodingException(command);

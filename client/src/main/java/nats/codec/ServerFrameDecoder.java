@@ -62,8 +62,9 @@ public class ServerFrameDecoder extends AbstractFrameDecoder<ServerFrame> {
 			if (length > getMaxMessageSize()) {
 				throwTooLongFrameException(context);
 			}
-			final ByteBuf bodyBytes = in.readBytes(length);
-			final String body = new String(bodyBytes.array());
+			final byte[] bodyBytes = new byte[length];
+			in.readBytes(bodyBytes, 0, length);
+			final String body = new String(bodyBytes);
 			in.skipBytes(ByteBufUtil.CRLF.length);
 			return new ServerPublishFrame(id, subject, replyTo, body);
 		}
