@@ -48,8 +48,8 @@ abstract class AbstractFrameDecoder<T extends NatsFrame> extends ReplayingDecode
 				in.skipBytes(frameLength + ByteBufUtil.CRLF.length);
 				throwTooLongFrameException(context);
 			} else {
-				String command = in.readBytes(frameLength).toString(CharsetUtil.UTF_8);
-				in.skipBytes(ByteBufUtil.CRLF.length);
+				String command = in.toString(in.readerIndex(), frameLength, CharsetUtil.UTF_8);
+				in.skipBytes(ByteBufUtil.CRLF.length + frameLength);
 				final T decodedCommand = decodeCommand(context, command, in);
 				out.add(decodedCommand);
 			}
