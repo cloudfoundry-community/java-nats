@@ -175,9 +175,8 @@ class NatsImpl implements Nats {
 					LOGGER.info("Connection to {} successful", server.getAddress());
 					server.connectionSuccess();
 					synchronized (lock) {
-						channel = future.channel();
 						if (closed) {
-							channel.close();
+							future.channel().close();
 						}
 					}
 				} else {
@@ -489,19 +488,19 @@ class NatsImpl implements Nats {
 				protected void serverInfo(ChannelHandlerContext context, ServerInfoFrame infoFrame) {
 					// TODO Parse info body for alternative servers to connect to as soon as NATS' clustering support starts sending this.
 					final ServerList.Server server = serverList.getCurrentServer();
-					final Channel channel = context.channel();
-					channel.writeAndFlush(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false))).addListener(new ChannelFutureListener() {
+					context.channel().writeAndFlush(new ClientConnectFrame(new ConnectBody(server.getUser(), server.getPassword(), pedantic, false))).addListener(new ChannelFutureListener() {
 						@Override
 						public void operationComplete(ChannelFuture future) throws Exception {
 							LOGGER.debug("Server ready");
+							final Channel channel = future.channel();
 							synchronized (lock) {
+								NatsImpl.this.channel = channel;
 								serverReady = true;
 								// Resubscribe when the channel opens.
 								for (NatsSubscription subscription : subscriptions.values()) {
 									writeSubscription(subscription);
 								}
 								// Resend pending publish commands.
-								final Channel channel = future.channel();
 								for (ClientPublishFrame publish : publishQueue) {
 									channel.write(publish);
 								}
